@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <ctype.h>
 #include <errno.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,14 @@
 #define WHITE_DELIMITERS "\t\v\f\r \n"
 #define FIRST_VALID_ASCII 33
 #define LAST_VALID_ASCII 126
+#define ZERO '0'
+#define HEXADECIMAL_PREFIX "0x"
+#define VALID_HEXADECIMAL_CHARS "0123456789abcdf"
+#define VALID_OCTAL_CHARS "01234567"
+#define VALID_DECIMAL_CHARS "0123456789"
+#define HEXADECIMAL_BASE 16
+#define DECIMAL_BASE 10
+#define OCTAL_BASE 8
 
 // Union that covers all the possible data types needed to hold a line of input.
 union word_union {
@@ -28,7 +37,7 @@ enum which_word_type {
 };
 
 // A struct that holds the data union and a enumeration type saying which type is in the union.
-typedef struct Word_type {
+typedef struct word_type {
     union word_union w_union;
     enum which_word_type which_type;
 } word_t;
@@ -36,7 +45,7 @@ typedef struct Word_type {
 // A struct that holds all the information about one line - a pointer to an array containing
 // all the words, number of the words, whether it's a comment or there's an error
 // and a number of line.
-typedef struct Line_type {
+typedef struct line_type {
     word_t *word_array;
     bool is_comment;
     bool is_error;
@@ -54,6 +63,8 @@ static inline void *safe_malloc(unsigned int size) {
     return ptr;
 }
 
+// Checks whether realloc returned NULL - if yes, then the program will exit with exit code 1,
+// otherwise returns what realloc has returned.
 static inline void *safe_realloc(void *ptr, unsigned int size) {
     void *realloc_ptr = realloc(ptr, size);
     if (realloc_ptr == NULL) {
@@ -88,6 +99,8 @@ void change_to_lower_case(char *line) {
     }
 }
 
+// TODO ungetc i ogarniecie komentarzy?
+
 // Gets one line from input, returns the pointer to the array containing characters from the
 // input and saves the size on a given variable.
 char *get_line_from_input(size_t *size) {
@@ -99,6 +112,7 @@ char *get_line_from_input(size_t *size) {
 
     *size = getline(&buffer, &buff_size, stdin);
     if (*size == -1) {
+        free(buffer);
         if (errno != 0) {
             printf("%s", strerror(errno));
             perror("Get line didn't work");
@@ -118,50 +132,143 @@ void read_string(char *string, word_t *word) {
     word->which_type = NOT_A_NUMBER;
 }
 
-// TODO -0 jako negative xd
-// TODO nan to string
-// TODO ogarnac 0x
-// TODO Przed liczbami ósemkowymi i szesnastkowymi nie może pojawić się znak +
-// TODO wyifowac double osemkowe i szesnastkowe -> nie moga takie byc
-
-void parse_one_word(char *start, word_t *word) {
-    errno = 0;
-    char *end = NULL;
-    bool is_negative = false;
-
-    if (*start == '-') {
-        start++;
-        is_negative = true;
-    }
-
-    unsigned long long value = strtoull(start, &end, 0);
-
-    if ((*end != '\0') || (errno != 0) || (end == start)) {
-        if (is_negative) {
-            start--;
-        }
-        errno = 0;
-        double value_d = strtod(start, &end);
-        if ((errno != 0) || (end == start) || (*end != '\0')) {
-            read_string(start, word);
-        } else {
-            word->w_union.floating_point_number = value_d;
-            word->which_type = FLOATING_POINT_NUMBER;
-        }
-        return;
-    }
-
-    if (is_negative) {
-        word->w_union.negative_number = (long long)(-1 * value);
-        // TODO cast only gdy jest w zakresie else wczytać jako string
-        word->which_type = NEGATIVE_NUMBER;
-    } else {
-        word->w_union.non_negative_number = value;
-        word->which_type = NON_NEGATIVE_NUMBER;
+bool is_character_in_base(int character, const int base) {
+    switch (base) {
+        case OCTAL_BASE:
+            if (!strchr(VALID_OCTAL_CHARS, character)) {
+                return false;
+            } else {
+                return true;
+            }
+        case DECIMAL_BASE:
+            if (!strchr(VALID_DECIMAL_CHARS, character)) {
+                return false;
+            } else {
+                return true;
+            }
+        case HEXADECIMAL_BASE:
+            if (!strchr(VALID_HEXADECIMAL_CHARS, character)) {
+                return false;
+            } else {
+                return true;
+            }
     }
 }
 
-// Prints the given word. (its only needed for debugging purposes)
+bool is_hexadecimal_number(const char *word) {
+    unsigned int len = strlen(word);
+    if (len < 2) {
+        return false;
+    }
+    if (word[0] == '+' || word[0] == '-') {
+        word++;
+        len--;
+    }
+    if (strncmp(word, HEXADECIMAL_PREFIX, 2) != 0) { // First two characters aren't the hex_prefix
+        return false;
+    }
+    for (unsigned int i = 2; i < len; i++) {
+        if (!is_character_in_base((int)word[i], HEXADECIMAL_BASE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool is_valid_octal_number(const char *word) {
+    if (*word != ZERO) {
+        return false;
+    }
+    for (unsigned int i = 0; i < strlen(word); i++) {
+        if (!is_character_in_base((int)word[i], OCTAL_BASE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool is_valid_decimal_number(const char *word) {
+    unsigned int len = strlen(word);
+    if (word[0] == '+' || word[0] == '-') {
+        if (len > 1) {
+            word++;
+            len--;
+        } else {
+            return false;
+        }
+    }
+    for (unsigned int i = 0; i < len; i++) {
+        if (!is_character_in_base((int)word[i], DECIMAL_BASE)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void parse_one_word(char *input_word, word_t *parsed_word) {
+    char *end = NULL;
+    if (is_hexadecimal_number(input_word)) {
+        if (input_word[0] != ZERO) {
+            read_string(input_word, parsed_word);
+        } else {
+            errno = 0;
+            unsigned long long hex_value = strtoull(input_word, &end, HEXADECIMAL_BASE);
+            if (errno != 0) {
+                read_string(input_word, parsed_word);
+            } else {
+                parsed_word->which_type = NON_NEGATIVE_NUMBER;
+                parsed_word->w_union.non_negative_number = hex_value;
+            }
+        }
+    } else if (is_valid_octal_number(input_word)) {
+        errno = 0;
+        unsigned long long oct_value = strtoull(input_word, &end, OCTAL_BASE);
+        if (errno != 0) {
+            read_string(input_word, parsed_word);
+        } else {
+            parsed_word->which_type = NON_NEGATIVE_NUMBER;
+            parsed_word->w_union.non_negative_number = oct_value;
+        }
+    } else if (is_valid_decimal_number(input_word)) {
+        if (input_word[0] == '-') {
+            errno = 0;
+            long long neg_value = strtoll(input_word, &end, DECIMAL_BASE);
+            if (errno != 0) {
+                read_string(input_word, parsed_word);
+            } else {
+                if (neg_value == 0) {
+                    parsed_word->which_type = NON_NEGATIVE_NUMBER;
+                    parsed_word->w_union.non_negative_number = (unsigned)neg_value;
+                } else {
+                    parsed_word->which_type = NEGATIVE_NUMBER;
+                    parsed_word->w_union.negative_number = neg_value;
+                }
+            }
+        } else {
+            errno = 0;
+            unsigned long long pos_value = strtoull(input_word, &end, DECIMAL_BASE);
+            if (errno != 0) {
+                read_string(input_word, parsed_word);
+            } else {
+                parsed_word->which_type = NON_NEGATIVE_NUMBER;
+                parsed_word->w_union.non_negative_number = pos_value;
+            }
+        }
+    } else {
+        errno = 0;
+        double duble = strtod(input_word, &end);
+        if ((errno != 0) || (end == input_word) || (*end != '\0')) {
+            read_string(input_word, parsed_word);
+        } else if (isnan(duble)) {
+            read_string("nan", parsed_word);
+        } else {
+            parsed_word->w_union.floating_point_number = duble;
+            parsed_word->which_type = FLOATING_POINT_NUMBER;
+        }
+    }
+}
+
+// Prints the given word. (it's only needed for debugging purposes)
 void print_word(word_t *word) {
     if (word->which_type == NEGATIVE_NUMBER)
         printf("negative: %lld\n", word->w_union.negative_number);
@@ -173,7 +280,8 @@ void print_word(word_t *word) {
         printf("string: %s\n", word->w_union.not_a_number);
 }
 
-// Returns a pointer to an array containing all words from a given line.
+// Returns a pointer to an array containing all words from a given input line.
+// Sets the given variable to number of words in the line.
 word_t *give_word_array(char *input_line, unsigned int *number_of_elements) {
     word_t *array = safe_malloc(STARTING_SIZE * sizeof(word_t));
     unsigned int i = 0, allocated_size = STARTING_SIZE;
@@ -218,9 +326,9 @@ line_t make_line(char *input_line, unsigned int number_of_line, size_t size) {
     } else if (!is_line_valid(input_line, size)) {
         line.is_error = true;
     } else {
-        unsigned int j = 0;
-        line.word_array = give_word_array(input_line, &j);
-        line.number_of_words = j;
+        unsigned int number_of_elements = 0;
+        line.word_array = give_word_array(input_line, &number_of_elements);
+        line.number_of_words = number_of_elements;
     }
     return line;
 }
@@ -239,19 +347,25 @@ void print_line(line_t line) {
     }
 }
 
+// Compares given negative numbers and returns -1/0/1 when the first one is
+// smaller/equal/bigger than the second one.
 static inline int compare_negatives(long long a, long long b) {
     return (a > b) - (a < b);
 }
 
+// Compares given non-negative numbers and returns -1/0/1 when the first one is
+// smaller/equal/bigger than the second one.
 static inline int compare_non_negatives(unsigned long long a, unsigned long long b) {
     return (a > b) - (a < b);
 }
 
+// Compares given floating-point numbers and returns -1/0/1 when the first one is
+// smaller/equal/bigger than the second one.
 static inline int compare_floating_points(double a, double b) {
     return (a > b) - (a < b);
 }
 
-// TODO ladniejsze ify
+// Compares
 int compare_two_words(const void *p, const void *q) {
     word_t word1 = *(const word_t *)p;
     word_t word2 = *(const word_t *)q;
@@ -320,6 +434,7 @@ void free_line_array(line_t *line_array, unsigned int size) {
         }
         free(line_array[i].word_array);
     }
+    free(line_array);
 }
 
 int main() {
@@ -333,7 +448,7 @@ int main() {
 
         line_t whole_line = make_line(input_line, i + 1, line_size);
         sort_one_line(whole_line);
-        print_line(whole_line);
+        // print_line(whole_line);
 
         if (i + 1 == allocated_size) {
             allocated_size *= 2;
@@ -346,10 +461,51 @@ int main() {
         input_line = get_line_from_input(&line_size);
     }
 
-    // sort_all_lines(line_array, i + 1);
+    // TODO spytac sie o to jakuba
+    sort_all_lines(line_array, i);
+
+    unsigned int **big_result_array;
+    big_result_array = malloc(STARTING_SIZE * sizeof(unsigned int));
+    unsigned int big_index = 0, small_index = 0, big_allocated = STARTING_SIZE,
+                 small_allocated = 1;
+    for (int pom = 0; pom < big_allocated; pom++) {
+        big_result_array[pom] = safe_malloc(small_allocated * sizeof(unsigned int));
+    }
+
+    big_result_array[big_index][small_index] = line_array[0].number_of_line;
+
+    for (unsigned int k = 0; k < i - 1; k++) {
+        const void *line1_ptr = &line_array[k];
+        const void *line2_ptr = &line_array[k + 1];
+        int res = compare_two_lines(line1_ptr, line2_ptr);
+
+        if (big_index == big_allocated) {
+            big_allocated *= 2;
+            big_result_array =
+                safe_realloc(big_result_array, big_allocated * sizeof(unsigned int));
+        }
+        if (small_index == small_allocated) {
+            small_allocated *= 2;
+            big_result_array[big_index] =
+                safe_realloc(big_result_array[big_index], small_allocated * sizeof(unsigned int));
+        }
+        if (res == 0) {
+            big_result_array[big_index][small_index] = line_array[k + 1].number_of_line;
+            small_index++;
+        } else { // niepodobne
+            big_index++;
+            small_index = 0;
+            big_result_array[big_index][small_index] = line_array[k].number_of_line;
+        }
+    }
+
+    for (int pom2 = 0; pom2 < big_allocated; pom2++) {
+        free(big_result_array[pom2]);
+    }
+
+    free(big_result_array);
 
     free_line_array(line_array, i);
-    free(line_array);
     free(input_line);
 
     return 0;
