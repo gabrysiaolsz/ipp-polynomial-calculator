@@ -99,9 +99,10 @@ void change_to_lower_case(char *line) {
     }
 }
 
+// TODO jakub inna konwencja?
 // Gets one line from input, returns the pointer to the array containing characters from the
 // input and saves the size on a given variable.
-char *get_line_from_input(size_t *size) {
+char *get_line_from_input(ssize_t *size) {
     size_t buff_size = STARTING_SIZE;
 
     char *buffer = safe_malloc(buff_size * sizeof(char));
@@ -129,6 +130,7 @@ void read_string(char *string, word_t *word) {
     word->type = NOT_A_NUMBER;
 }
 
+// TODO comment
 bool is_character_in_base(char character, const int base) {
     switch (base) {
         case OCTAL_BASE:
@@ -141,9 +143,13 @@ bool is_character_in_base(char character, const int base) {
             return strchr(WHITE_DELIMITERS, (int)character);
         case INVALID_HEXADECIMAL_BASE:
             return strchr(INVALID_HEXADECIMAL_CHARS, (int)character);
+        default:
+            return false;
     }
 }
 
+// Returns true when given word contains only characters valid in specified base,
+// false otherwise.
 bool are_characters_valid_in_given_base(const char *word, int base) {
     while (*word) {
         if (!is_character_in_base(*word, base)) {
@@ -154,6 +160,7 @@ bool are_characters_valid_in_given_base(const char *word, int base) {
     return true;
 }
 
+// Returns true when given word is a hexadecimal number, false otherwise.
 bool is_hexadecimal_number(const char *word) {
     if (strlen(word) < 2) {
         return false;
@@ -167,6 +174,7 @@ bool is_hexadecimal_number(const char *word) {
     return are_characters_valid_in_given_base(word + 2, HEXADECIMAL_BASE);
 }
 
+// Return true when given word is a valid octal number, false otherwise.
 bool is_valid_octal_number(const char *word) {
     if (*word != ZERO_ASCII) {
         return false;
@@ -174,6 +182,7 @@ bool is_valid_octal_number(const char *word) {
     return are_characters_valid_in_given_base(word, OCTAL_BASE);
 }
 
+// Returns true when given word is a valid decimal number, false otherwise.
 bool is_valid_decimal_number(const char *word) {
     if (word[0] == '+' || word[0] == '-') {
         if (strlen(word) > 1) {
@@ -185,10 +194,13 @@ bool is_valid_decimal_number(const char *word) {
     return are_characters_valid_in_given_base(word, DECIMAL_BASE);
 }
 
+// Returns true when given word contains only whitespaces, false otherwise.
 bool is_only_whitespaces(const char *word) {
     return are_characters_valid_in_given_base(word, WHITE_BASE);
 }
 
+// TODO podzielic parse na mniejsze funkcje
+// TODO comment
 void parse_one_word(char *input_word, word_t *parsed_word) {
     char *end = NULL;
     if (is_hexadecimal_number(input_word)) {
@@ -276,7 +288,7 @@ void parse_one_word(char *input_word, word_t *parsed_word) {
     }
 }
 
-// Prints the given word. it's only needed for debugging purposes)
+// Prints the given word. (it's only needed for debugging purposes)
 void print_word(word_t *word) {
     if (word->type == NEGATIVE_NUMBER)
         printf("negative: %lld\n", word->w_union.negative_number);
@@ -312,22 +324,12 @@ word_t *get_word_array(char *input_line, unsigned int *number_of_elements) {
     return array;
 }
 
-// Returns line with initialised values.
-line_t initialise_line() {
-    line_t line;
-    line.word_array = NULL;
-    line.is_comment = false;
-    line.is_error = false;
-    line.is_empty = false;
-    line.words_count = 0;
-    return line;
-}
-
 // Checks whether a line is a comment or valid and sets corresponding boolean variables
 // accordingly.
 // If it is a valid, non-comment line, fills the array with words from a given line of input.
-line_t make_line(char *input_line, unsigned int number_of_line, size_t size) {
-    line_t line = initialise_line();
+line_t make_line(char *input_line, unsigned int number_of_line, ssize_t size) {
+    // line_t line = initialise_line();
+    line_t line = {0};
     line.line_number = number_of_line;
 
     if (input_line[0] == '#') {
@@ -370,7 +372,9 @@ static inline int compare_non_negatives(const void *a, const void *b) {
     return (first > second) - (first < second);
 }
 
-// Compares
+// Compares two given words and returns -1/0/1 when the first one is smaller/equal/bigger than the
+// second one.
+// The comparison is firstly done by a type of word, and when they're the same by the value.
 int compare_two_words(const void *p, const void *q) {
     word_t word1 = *(const word_t *)p;
     word_t word2 = *(const word_t *)q;
@@ -390,6 +394,8 @@ int compare_two_words(const void *p, const void *q) {
                    (word1.w_union.floating_point_number > word2.w_union.floating_point_number);
         case NOT_A_NUMBER:
             return strcmp(word1.w_union.not_a_number, word2.w_union.not_a_number);
+        default:
+            return 0;
     }
 }
 
@@ -398,7 +404,10 @@ void sort_one_line(line_t line) {
     qsort(line.word_array, line.words_count, sizeof(word_t), compare_two_words);
 }
 
-//
+// Compares two given lines and returns -1/0/1 when the first one is smaller/equal/bigger than the
+// second one.
+// The comparison is firstly made by the number of words in lines, and when they're the same by
+// the words.
 int compare_two_lines(const void *p, const void *q) {
     line_t line1 = *(const line_t *)p;
     line_t line2 = *(const line_t *)q;
@@ -533,7 +542,7 @@ void make_print_result_array(line_t *line_array, unsigned int line_array_size,
 }
 
 int main() {
-    size_t line_size;
+    ssize_t line_size;
     char *input_line = get_line_from_input(&line_size);
     unsigned int number_of_line = 1, allocated_size = STARTING_SIZE, array_index = 0;
     line_t *line_array = safe_malloc(STARTING_SIZE * sizeof(line_t));
