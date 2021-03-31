@@ -199,7 +199,7 @@ bool is_valid_octal_number(const char *word) {
 // Returns true when given word is a valid decimal number, false otherwise.
 bool is_valid_decimal_number(const char *word) {
     if (word[0] == '+' || word[0] == '-') {
-        if (strlen(word) > 1) {
+        if (word[1] != '\0') {
             word++;
         } else {
             return false;
@@ -264,7 +264,7 @@ void parse_decimal_number(char *input_word, word_t *parsed_word, char *end) {
         } else {
             if (neg_value == 0) { // Corner case: 0.
                 parsed_word->type = NON_NEGATIVE_NUMBER;
-                parsed_word->w_union.non_negative_number = (unsigned)neg_value;
+                parsed_word->w_union.non_negative_number = 0;
             } else {
                 parsed_word->type = NEGATIVE_NUMBER;
                 parsed_word->w_union.negative_number = neg_value;
@@ -310,7 +310,7 @@ void parse_double(char *input_word, word_t *parsed_word, char *end) {
     }
 }
 
-// Parses one given word from input and saves it to a given word.
+// Parses one given word from input and saves it to a given variable.
 // While parsing, decides whether it's a: negative integer, non-negative integer, floating point
 // number or a text.
 void parse_one_word(char *input_word, word_t *parsed_word) {
@@ -321,25 +321,11 @@ void parse_one_word(char *input_word, word_t *parsed_word) {
         parse_octal_number(input_word, parsed_word, end);
     } else if (is_valid_decimal_number(input_word)) {
         parse_decimal_number(input_word, parsed_word, end);
+    } else if (is_double_hexadecimal_number(input_word)) {
+        read_text(input_word, parsed_word);
     } else {
-        if (is_double_hexadecimal_number(input_word)) {
-            read_text(input_word, parsed_word);
-        } else {
-            parse_double(input_word, parsed_word, end);
-        }
+        parse_double(input_word, parsed_word, end);
     }
-}
-
-// Prints the given word. (it's only needed for debugging purposes)
-void print_word(word_t *word) {
-    if (word->type == NEGATIVE_NUMBER)
-        printf("negative: %lld\n", word->w_union.negative_number);
-    else if (word->type == NON_NEGATIVE_NUMBER)
-        printf("non negative: %llu\n", word->w_union.non_negative_number);
-    else if (word->type == FLOATING_POINT_NUMBER)
-        printf("floating: %Lf\n", word->w_union.floating_point_number);
-    else
-        printf("text: %s\n", word->w_union.text);
 }
 
 // Returns a pointer to an array containing all words from a given input line.
@@ -391,20 +377,6 @@ line_t make_line(char *input_line, size_t number_of_line, ssize_t size) {
         line.words_count = number_of_elements;
     }
     return line;
-}
-
-// Prints the given line. (it's only for debugging purposes)
-void print_line(line_t line) {
-    printf("line %zu ", line.line_number);
-    if (line.is_error) {
-        printf("line is an error\n");
-    } else if (line.is_comment) {
-        printf("line is a comment\n");
-    } else {
-        for (unsigned int i = 0; i < line.words_count; i++) {
-            print_word(&line.word_array[i]);
-        }
-    }
 }
 
 // Compares given non-negative integers numbers and returns -1/0/1 when the first one is
@@ -496,8 +468,7 @@ size_t get_number_of_sets(line_t *line_array, unsigned int size) {
         const void *line1_ptr = &line_array[i];
         const void *line2_ptr = &line_array[i + 1];
 
-        int res = compare_two_lines(line1_ptr, line2_ptr);
-        if (res != 0) {
+        if (compare_two_lines(line1_ptr, line2_ptr)) {
             number++;
         }
     }
@@ -553,21 +524,20 @@ static inline int compare_non_negative_pointers(const void *a, const void *b) {
     return (*first > *second) - (*first < *second);
 }
 
-void print_result_array(size_t number_of_sets, size_t **result_array,
-                        const size_t *set_sizes) {
-    size_t set_index = 0;
+// Prints the result.
+void print_result(size_t number_of_sets, size_t **result_array, const size_t *set_sizes) {
     for (unsigned int k = 0; k < number_of_sets; k++) {
-        size_t a = result_array[k][0];
-        size_t set_cardinality = set_sizes[a - 1];
+        size_t set_cardinality = set_sizes[result_array[k][0] - 1];
         print_array(result_array[k], set_cardinality);
-        set_index += set_cardinality;
     }
 }
 
+// Sorts a 2D array containing result.
 void sort_result_array(size_t **result_array, size_t number_of_sets) {
     qsort(result_array, number_of_sets, sizeof(size_t *), compare_non_negative_pointers);
 }
 
+// Prepares the result and prints it.
 void get_result(line_t *line_array, unsigned int line_array_size, size_t max_line_num) {
     size_t number_of_sets = get_number_of_sets(line_array, line_array_size);
     size_t set_index = 0;
@@ -588,12 +558,14 @@ void get_result(line_t *line_array, unsigned int line_array_size, size_t max_lin
     }
 
     sort_result_array(result_array, number_of_sets);
-    print_result_array(number_of_sets, result_array, set_sizes);
+    print_result(number_of_sets, result_array, set_sizes);
 
     free(set_sizes);
     free_result_array(result_array, number_of_sets);
 }
 
+// Fills the array with parsed lines.
+// Returns the pointer to it.
 line_t *fill_line_array(unsigned int *size, size_t *number_of_line) {
     ssize_t line_size;
     char *input_line;
@@ -609,16 +581,15 @@ line_t *fill_line_array(unsigned int *size, size_t *number_of_line) {
             line_array = safe_realloc(line_array, capacity * sizeof(line_t));
         }
 
-        // Adding valid lines to array.
-        if (!line.is_comment && !line.is_error && !line.is_empty) {
+        if (!line.is_comment && !line.is_error &&
+            !line.is_empty) { // Adding only valid lines to array.
             sort_one_line(line);
             line_array[*size] = line;
             (*size)++;
         }
         free(input_line);
     }
-    free(input_line);
-
+    
     return line_array;
 }
 
@@ -627,7 +598,7 @@ int main() {
     unsigned int size = 0;
     line_t *line_array = fill_line_array(&size, &number_of_line);
 
-    if (size > 0) {
+    if (size) {
         sort_all_lines(line_array, size);
         get_result(line_array, size, number_of_line);
     }
