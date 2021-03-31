@@ -15,7 +15,7 @@
 #define ZERO_ASCII '0'
 #define HEXADECIMAL_PREFIX "0x"
 #define VALID_HEXADECIMAL_CHARS "0123456789abcdef"
-#define INVALID_HEXADECIMAL_CHARS "p."
+#define INVALID_HEXADECIMAL_CHARS "0123456789abcdefp."
 #define VALID_OCTAL_CHARS "01234567"
 #define VALID_DECIMAL_CHARS "0123456789"
 #define HEXADECIMAL_BASE 16
@@ -29,11 +29,11 @@ union word_union {
     long double floating_point_number;
     long long negative_number;
     unsigned long long non_negative_number;
-    char *not_a_number;
+    char *text;
 };
 
 // Enumeration type saying which data type is stored in a union.
-enum enum_word_type { NEGATIVE_NUMBER, NON_NEGATIVE_NUMBER, FLOATING_POINT_NUMBER, NOT_A_NUMBER };
+enum enum_word_type { NEGATIVE_NUMBER, NON_NEGATIVE_NUMBER, FLOATING_POINT_NUMBER, TEXT };
 
 // A struct that holds the data union and a enumeration type saying which type is in the union.
 typedef struct word_type {
@@ -46,8 +46,8 @@ typedef struct word_type {
 // and a number of line.
 typedef struct line_type {
     word_t *word_array;
-    unsigned int words_count;
-    unsigned int line_number;
+    size_t words_count;
+    size_t line_number;
     bool is_comment;
     bool is_error;
     bool is_empty;
@@ -55,22 +55,32 @@ typedef struct line_type {
 
 // Checks whether malloc returned NULL - if yes, then the program will exit with exit code 1,
 // otherwise returns what malloc has returned.
-static inline void *safe_malloc(unsigned int size) {
-    void *ptr = malloc(size);
-    if (ptr == NULL) {
+void *safe_malloc(size_t size) {
+    void *malloc_ptr = malloc(size);
+    if (malloc_ptr == NULL) {
         exit(EXIT_FAILURE);
     }
-    return ptr;
+    return malloc_ptr;
 }
 
 // Checks whether realloc returned NULL - if yes, then the program will exit with exit code 1,
 // otherwise returns what realloc has returned.
-static inline void *safe_realloc(void *ptr, unsigned int size) {
+void *safe_realloc(void *ptr, size_t size) {
     void *realloc_ptr = realloc(ptr, size);
     if (realloc_ptr == NULL) {
         exit(EXIT_FAILURE);
     }
     return realloc_ptr;
+}
+
+// Checks whether calloc returned NULL - if yes, then the program will exit with exit code 1,
+// otherwise returns what calloc has returned.
+void *safe_calloc(size_t number_of_elements, size_t size) {
+    void *calloc_ptr = calloc(number_of_elements, size);
+    if (calloc_ptr == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    return calloc_ptr;
 }
 
 // Returns true when the given character is valid (is within ASCII 33-126 or whitespace)
@@ -81,8 +91,8 @@ bool is_valid_character(int character) {
 }
 
 // Returns true if given line is valid, false otherwise.
-bool is_line_valid(char *line, size_t size) {
-    for (size_t i = 0; i < size; i++) {
+bool is_line_valid(char *line, ssize_t size) {
+    for (ssize_t i = 0; i < size; i++) {
         if (!is_valid_character(line[i])) {
             return false;
         }
@@ -99,7 +109,6 @@ void change_to_lower_case(char *line) {
     }
 }
 
-// TODO jakub inna konwencja?
 // Gets one line from input, returns the pointer to the array containing characters from the
 // input and saves the size on a given variable.
 char *get_line_from_input(ssize_t *size) {
@@ -123,14 +132,14 @@ char *get_line_from_input(ssize_t *size) {
     return buffer;
 }
 
-// Reads string and saves it to a given word.
-void read_string(char *string, word_t *word) {
-    word->w_union.not_a_number = safe_malloc((strlen(string) + 1) * sizeof(word_t));
-    strcpy(word->w_union.not_a_number, string);
-    word->type = NOT_A_NUMBER;
+// Reads text and saves it to a given word.
+void read_text(char *text, word_t *word) {
+    word->w_union.text = safe_malloc((strlen(text) + 1) * sizeof(word_t));
+    strcpy(word->w_union.text, text);
+    word->type = TEXT;
 }
 
-// TODO comment
+// Return true when a given character is in specified base, false otherwise.
 bool is_character_in_base(char character, const int base) {
     switch (base) {
         case OCTAL_BASE:
@@ -158,6 +167,11 @@ bool are_characters_valid_in_given_base(const char *word, int base) {
         word++;
     }
     return true;
+}
+
+// Returns true when given word contains only whitespaces, false otherwise.
+bool is_only_whitespaces(const char *word) {
+    return are_characters_valid_in_given_base(word, WHITE_BASE);
 }
 
 // Returns true when given word is a hexadecimal number, false otherwise.
@@ -194,96 +208,124 @@ bool is_valid_decimal_number(const char *word) {
     return are_characters_valid_in_given_base(word, DECIMAL_BASE);
 }
 
-// Returns true when given word contains only whitespaces, false otherwise.
-bool is_only_whitespaces(const char *word) {
-    return are_characters_valid_in_given_base(word, WHITE_BASE);
+// Returns true when a given word is a valid hexadecimal number in floating-point format, false
+// otherwise.
+bool is_double_hexadecimal_number(const char *word) {
+    if (strlen(word) < 2) {
+        return false;
+    }
+    if (word[0] == '+' || word[0] == '-') {
+        word++;
+    }
+    if (strncmp(word, HEXADECIMAL_PREFIX, 2) != 0) { // First two characters aren't the hex_prefix
+        return false;
+    }
+    return are_characters_valid_in_given_base(word + 2, INVALID_HEXADECIMAL_BASE);
 }
 
-// TODO podzielic parse na mniejsze funkcje
-// TODO comment
-void parse_one_word(char *input_word, word_t *parsed_word) {
-    char *end = NULL;
-    if (is_hexadecimal_number(input_word)) {
-        if (input_word[0] != ZERO_ASCII) {
-            read_string(input_word, parsed_word);
-        } else {
-            errno = 0;
-            unsigned long long hex_value = strtoull(input_word, &end, HEXADECIMAL_BASE);
-            if (errno != 0) {
-                read_string(input_word, parsed_word);
-            } else {
-                parsed_word->type = NON_NEGATIVE_NUMBER;
-                parsed_word->w_union.non_negative_number = hex_value;
-            }
-        }
-    } else if (is_valid_octal_number(input_word)) {
+// Decides if given word is indeed a valid hexadecimal number or a text.
+// After that, parses it and saves to a given word.
+void parse_hexadecimal_number(char *input_word, word_t *parsed_word, char *end) {
+    if (input_word[0] != ZERO_ASCII) {
+        read_text(input_word, parsed_word);
+    } else {
         errno = 0;
-        unsigned long long oct_value = strtoull(input_word, &end, OCTAL_BASE);
+        unsigned long long hex_value = strtoull(input_word, &end, HEXADECIMAL_BASE);
         if (errno != 0) {
-            read_string(input_word, parsed_word);
+            read_text(input_word, parsed_word);
         } else {
             parsed_word->type = NON_NEGATIVE_NUMBER;
-            parsed_word->w_union.non_negative_number = oct_value;
+            parsed_word->w_union.non_negative_number = hex_value;
         }
-    } else if (is_valid_decimal_number(input_word)) {
-        if (input_word[0] == '-') {
-            errno = 0;
-            long long neg_value = strtoll(input_word, &end, DECIMAL_BASE);
-            if (errno != 0) {
-                read_string(input_word, parsed_word);
-            } else {
-                if (neg_value == 0) {
-                    parsed_word->type = NON_NEGATIVE_NUMBER;
-                    parsed_word->w_union.non_negative_number = (unsigned)neg_value;
-                } else {
-                    parsed_word->type = NEGATIVE_NUMBER;
-                    parsed_word->w_union.negative_number = neg_value;
-                }
-            }
+    }
+}
+
+// Decides if given word is indeed a valid octal number or a text.
+// After that, parses it and saves to a given word.
+void parse_octal_number(char *input_word, word_t *parsed_word, char *end) {
+    errno = 0;
+    unsigned long long oct_value = strtoull(input_word, &end, OCTAL_BASE);
+    if (errno != 0) {
+        read_text(input_word, parsed_word);
+    } else {
+        parsed_word->type = NON_NEGATIVE_NUMBER;
+        parsed_word->w_union.non_negative_number = oct_value;
+    }
+}
+
+// Decides if a given word is a negative, non-negative number or a text.
+// After that, parses it and saves to a given word.
+void parse_decimal_number(char *input_word, word_t *parsed_word, char *end) {
+    if (input_word[0] == '-') {
+        errno = 0;
+        long long neg_value = strtoll(input_word, &end, DECIMAL_BASE);
+        if (errno != 0) {
+            read_text(input_word, parsed_word);
         } else {
-            errno = 0;
-            unsigned long long pos_value = strtoull(input_word, &end, DECIMAL_BASE);
-            if (errno != 0) {
-                read_string(input_word, parsed_word);
-            } else {
+            if (neg_value == 0) { // Corner case: 0.
                 parsed_word->type = NON_NEGATIVE_NUMBER;
-                parsed_word->w_union.non_negative_number = pos_value;
+                parsed_word->w_union.non_negative_number = (unsigned)neg_value;
+            } else {
+                parsed_word->type = NEGATIVE_NUMBER;
+                parsed_word->w_union.negative_number = neg_value;
             }
         }
     } else {
-        if (strlen(input_word) > 2 && input_word[0] == ZERO_ASCII && input_word[1] == X_ASCII) {
-            are_characters_valid_in_given_base(input_word, INVALID_HEXADECIMAL_BASE);
-            read_string(input_word, parsed_word);
-            return;
-        }
-        if (strlen(input_word) > 3 && (input_word[0] == '+' || input_word[0] == '-') &&
-            input_word[1] == ZERO_ASCII && input_word[2] == X_ASCII) {
-            are_characters_valid_in_given_base(input_word, INVALID_HEXADECIMAL_BASE);
-            read_string(input_word, parsed_word);
-            return;
-        }
         errno = 0;
-        long double value_d = strtold(input_word, &end); // 7e1100
-        if ((errno != 0) || (end == input_word) || (*end != '\0')) {
-            read_string(input_word, parsed_word);
-        } else if (value_d != value_d) {
-            read_string("nan", parsed_word);
-        } else if (value_d < 0) {
-            if (value_d - (long long)value_d == 0 && value_d >= LLONG_MIN) {
-                parsed_word->type = NEGATIVE_NUMBER;
-                parsed_word->w_union.negative_number = (long long)value_d;
-            } else {
-                parsed_word->w_union.floating_point_number = value_d;
-                parsed_word->type = FLOATING_POINT_NUMBER;
-            }
-        } else if (value_d >= 0) {
-            if (value_d - (unsigned long long)value_d == 0 && value_d <= ULLONG_MAX) {
-                parsed_word->type = NON_NEGATIVE_NUMBER;
-                parsed_word->w_union.non_negative_number = (unsigned long long)value_d;
-            } else {
-                parsed_word->w_union.floating_point_number = value_d;
-                parsed_word->type = FLOATING_POINT_NUMBER;
-            }
+        unsigned long long pos_value = strtoull(input_word, &end, DECIMAL_BASE);
+        if (errno != 0) {
+            read_text(input_word, parsed_word);
+        } else {
+            parsed_word->type = NON_NEGATIVE_NUMBER;
+            parsed_word->w_union.non_negative_number = pos_value;
+        }
+    }
+}
+
+// Decides if a given word is a double, or a text. If it's parsed as a double but is an integer
+// within the range, saves it as a negative or non-negative value.
+void parse_double(char *input_word, word_t *parsed_word, char *end) {
+    errno = 0;
+    long double value_d = strtold(input_word, &end);
+    if ((errno != 0) || (end == input_word) || (*end != '\0')) {
+        read_text(input_word, parsed_word);
+    } else if (value_d != value_d) {
+        read_text("nan", parsed_word);
+    } else if (value_d < 0) {
+        if (value_d - (long long)value_d == 0 && value_d >= LLONG_MIN) {
+            parsed_word->type = NEGATIVE_NUMBER;
+            parsed_word->w_union.negative_number = (long long)value_d;
+        } else {
+            parsed_word->w_union.floating_point_number = value_d;
+            parsed_word->type = FLOATING_POINT_NUMBER;
+        }
+    } else if (value_d >= 0) {
+        if (value_d - (unsigned long long)value_d == 0 && value_d <= ULLONG_MAX) {
+            parsed_word->type = NON_NEGATIVE_NUMBER;
+            parsed_word->w_union.non_negative_number = (unsigned long long)value_d;
+        } else {
+            parsed_word->w_union.floating_point_number = value_d;
+            parsed_word->type = FLOATING_POINT_NUMBER;
+        }
+    }
+}
+
+// Parses one given word from input and saves it to a given word.
+// While parsing, decides whether it's a: negative integer, non-negative integer, floating point
+// number or a text.
+void parse_one_word(char *input_word, word_t *parsed_word) {
+    char *end = NULL;
+    if (is_hexadecimal_number(input_word)) {
+        parse_hexadecimal_number(input_word, parsed_word, end);
+    } else if (is_valid_octal_number(input_word)) {
+        parse_octal_number(input_word, parsed_word, end);
+    } else if (is_valid_decimal_number(input_word)) {
+        parse_decimal_number(input_word, parsed_word, end);
+    } else {
+        if (is_double_hexadecimal_number(input_word)) {
+            read_text(input_word, parsed_word);
+        } else {
+            parse_double(input_word, parsed_word, end);
         }
     }
 }
@@ -297,29 +339,29 @@ void print_word(word_t *word) {
     else if (word->type == FLOATING_POINT_NUMBER)
         printf("floating: %Lf\n", word->w_union.floating_point_number);
     else
-        printf("string: %s\n", word->w_union.not_a_number);
+        printf("text: %s\n", word->w_union.text);
 }
 
 // Returns a pointer to an array containing all words from a given input line.
 // Sets the given variable to number of words in the line.
-word_t *get_word_array(char *input_line, unsigned int *number_of_elements) {
-    word_t *array = safe_malloc(STARTING_SIZE * sizeof(word_t));
-    unsigned int i = 0, allocated_size = STARTING_SIZE;
+word_t *get_word_array(char *input_line, size_t *number_of_elements) {
+    size_t size = 0, capacity = STARTING_SIZE;
+    word_t *array = safe_malloc(capacity * sizeof(word_t));
     word_t parsed_word;
     char *word_from_line = strtok(input_line, WHITE_DELIMITERS);
 
     while (word_from_line != NULL) {
-        if (i == allocated_size) {
-            allocated_size *= 2;
-            array = safe_realloc(array, (allocated_size * sizeof(word_t)));
+        if (size == capacity) {
+            capacity *= 2;
+            array = safe_realloc(array, (capacity * sizeof(word_t)));
         }
 
         parse_one_word(word_from_line, &parsed_word);
-        array[i] = parsed_word;
-        i++;
+        array[size] = parsed_word;
+        size++;
         word_from_line = strtok(NULL, WHITE_DELIMITERS);
     }
-    *number_of_elements = i;
+    *number_of_elements = size;
 
     return array;
 }
@@ -327,23 +369,24 @@ word_t *get_word_array(char *input_line, unsigned int *number_of_elements) {
 // Checks whether a line is a comment or valid and sets corresponding boolean variables
 // accordingly.
 // If it is a valid, non-comment line, fills the array with words from a given line of input.
-line_t make_line(char *input_line, unsigned int number_of_line, ssize_t size) {
-    // line_t line = initialise_line();
+line_t make_line(char *input_line, size_t number_of_line, ssize_t size) {
     line_t line = {0};
     line.line_number = number_of_line;
+
+    change_to_lower_case(input_line);
 
     if (input_line[0] == '#') {
         line.is_comment = true;
     }
     if (!is_line_valid(input_line, size) && !line.is_comment) {
         line.is_error = true;
-        fprintf(stderr, "%s %u\n", "ERROR", line.line_number);
+        fprintf(stderr, "%s %zu\n", "ERROR", line.line_number);
     }
     if (is_only_whitespaces(input_line)) {
         line.is_empty = true;
     }
     if (!line.is_comment && !line.is_error && !line.is_empty) {
-        unsigned int number_of_elements = 0;
+        size_t number_of_elements = 0;
         line.word_array = get_word_array(input_line, &number_of_elements);
         line.words_count = number_of_elements;
     }
@@ -352,7 +395,7 @@ line_t make_line(char *input_line, unsigned int number_of_line, ssize_t size) {
 
 // Prints the given line. (it's only for debugging purposes)
 void print_line(line_t line) {
-    printf("line %d ", line.line_number);
+    printf("line %zu ", line.line_number);
     if (line.is_error) {
         printf("line is an error\n");
     } else if (line.is_comment) {
@@ -392,8 +435,8 @@ int compare_two_words(const void *p, const void *q) {
         case FLOATING_POINT_NUMBER:
             return (word1.w_union.floating_point_number < word2.w_union.floating_point_number) -
                    (word1.w_union.floating_point_number > word2.w_union.floating_point_number);
-        case NOT_A_NUMBER:
-            return strcmp(word1.w_union.not_a_number, word2.w_union.not_a_number);
+        case TEXT:
+            return strcmp(word1.w_union.text, word2.w_union.text);
         default:
             return 0;
     }
@@ -412,9 +455,7 @@ int compare_two_lines(const void *p, const void *q) {
     line_t line1 = *(const line_t *)p;
     line_t line2 = *(const line_t *)q;
 
-    if (line1.words_count < line2.words_count) {
-        return -1;
-    } else if (line1.words_count == line2.words_count) {
+    if (line1.words_count == line2.words_count) {
         for (unsigned int i = 0; i < line1.words_count; i++) {
             const void *word1_ptr = &line1.word_array[i];
             const void *word2_ptr = &line2.word_array[i];
@@ -426,7 +467,7 @@ int compare_two_lines(const void *p, const void *q) {
         }
         return 0;
     } else {
-        return 1;
+        return (line1.words_count > line2.words_count) - (line1.words_count < line2.words_count);
     }
 }
 
@@ -439,8 +480,8 @@ void sort_all_lines(line_t *line_array, unsigned int size) {
 void free_line_array(line_t *line_array, unsigned int size) {
     for (unsigned int i = 0; i < size; i++) {
         for (unsigned int j = 0; j < line_array[i].words_count; j++) {
-            if (line_array[i].word_array[j].type == NOT_A_NUMBER) {
-                free(line_array[i].word_array[j].w_union.not_a_number);
+            if (line_array[i].word_array[j].type == TEXT) {
+                free(line_array[i].word_array[j].w_union.text);
             }
         }
         free(line_array[i].word_array);
@@ -448,7 +489,8 @@ void free_line_array(line_t *line_array, unsigned int size) {
     free(line_array);
 }
 
-unsigned int get_number_of_sets(line_t *line_array, unsigned int size) {
+// Returns number of sets made from similar lines stored a given array.
+size_t get_number_of_sets(line_t *line_array, unsigned int size) {
     unsigned int number = 0;
     for (unsigned int i = 0; i < size - 1; i++) {
         const void *line1_ptr = &line_array[i];
@@ -462,9 +504,9 @@ unsigned int get_number_of_sets(line_t *line_array, unsigned int size) {
     return number + 1;
 }
 
-unsigned int get_set_cardinality(line_t *line_array, unsigned int set_start_index,
-                                 unsigned int size) {
-    unsigned int size_of_set = 1;
+// Returns set cardinality.
+size_t get_set_cardinality(line_t *line_array, size_t set_start_index, unsigned int size) {
+    size_t size_of_set = 1;
     bool is_still_the_same_set = true;
     while (is_still_the_same_set && set_start_index < size - 1) {
         const void *line1_ptr = &line_array[set_start_index];
@@ -480,25 +522,30 @@ unsigned int get_set_cardinality(line_t *line_array, unsigned int set_start_inde
     return size_of_set;
 }
 
-void sort_set_array(unsigned int *set_array, size_t size) {
-    qsort(set_array, size, sizeof(unsigned int), compare_non_negatives);
+// Sorts the set array.
+void sort_set_array(size_t *set_array, size_t size) {
+    qsort(set_array, size, sizeof(size_t), compare_non_negatives);
 }
 
-void free_result_array(unsigned int **result_array, unsigned int number_of_sets) {
+// Frees the result array.
+void free_result_array(size_t **result_array, size_t number_of_sets) {
     for (unsigned int i = 0; i < number_of_sets; i++) {
         free(result_array[i]);
     }
     free(result_array);
 }
 
-void print_array(unsigned int *array, unsigned int size) {
-    printf("%d", array[0]);
-    for (unsigned k = 1; k < size; k++) {
-        printf(" %d", array[k]);
+// Prints the array.
+void print_array(size_t *array, size_t size) {
+    printf("%zu", array[0]);
+    for (size_t k = 1; k < size; k++) {
+        printf(" %zu", array[k]);
     }
     printf("\n");
 }
 
+// Compares pointers to non-negative values. Returns -1/0/1 when the first one is
+// smaller/equal/bigger than the second one.
 static inline int compare_non_negative_pointers(const void *a, const void *b) {
     const unsigned int *first = *(const unsigned int **)a;
     const unsigned int *second = *(const unsigned int **)b;
@@ -506,17 +553,31 @@ static inline int compare_non_negative_pointers(const void *a, const void *b) {
     return (*first > *second) - (*first < *second);
 }
 
-void make_print_result_array(line_t *line_array, unsigned int line_array_size,
-                             unsigned int max_line_num) {
+void print_result_array(size_t number_of_sets, size_t **result_array,
+                        const size_t *set_sizes) {
+    size_t set_index = 0;
+    for (unsigned int k = 0; k < number_of_sets; k++) {
+        size_t a = result_array[k][0];
+        size_t set_cardinality = set_sizes[a - 1];
+        print_array(result_array[k], set_cardinality);
+        set_index += set_cardinality;
+    }
+}
+
+void sort_result_array(size_t **result_array, size_t number_of_sets) {
+    qsort(result_array, number_of_sets, sizeof(size_t *), compare_non_negative_pointers);
+}
+
+void get_result(line_t *line_array, unsigned int line_array_size, size_t max_line_num) {
     size_t number_of_sets = get_number_of_sets(line_array, line_array_size);
-    unsigned int set_index = 0, line_index = 0;
-    unsigned int **result_array = safe_malloc(number_of_sets * sizeof(unsigned int *));
-    unsigned int *set_sizes = calloc(max_line_num, sizeof(unsigned int));
+    size_t set_index = 0;
+    unsigned int line_index = 0;
+    size_t **result_array = safe_malloc(number_of_sets * sizeof(size_t *));
+    size_t *set_sizes = safe_calloc(max_line_num, sizeof(size_t));
 
     for (unsigned int i = 0; i < number_of_sets; i++) {
-        unsigned int set_cardinality =
-            get_set_cardinality(line_array, set_index, line_array_size);
-        result_array[i] = safe_malloc(set_cardinality * sizeof(unsigned int));
+        size_t set_cardinality = get_set_cardinality(line_array, set_index, line_array_size);
+        result_array[i] = safe_malloc(set_cardinality * sizeof(size_t));
         for (unsigned int j = 0; j < set_cardinality; j++) {
             result_array[i][j] = line_array[line_index].line_number;
             line_index++;
@@ -526,58 +587,52 @@ void make_print_result_array(line_t *line_array, unsigned int line_array_size,
         set_index += set_cardinality;
     }
 
-    qsort(result_array, number_of_sets, sizeof(unsigned int *), compare_non_negative_pointers);
-
-    set_index = 0;
-
-    for (unsigned int k = 0; k < number_of_sets; k++) {
-        unsigned int a = result_array[k][0];
-        unsigned int set_cardinality = set_sizes[a - 1];
-        print_array(result_array[k], set_cardinality);
-        set_index += set_cardinality;
-    }
+    sort_result_array(result_array, number_of_sets);
+    print_result_array(number_of_sets, result_array, set_sizes);
 
     free(set_sizes);
     free_result_array(result_array, number_of_sets);
 }
 
-int main() {
+line_t *fill_line_array(unsigned int *size, size_t *number_of_line) {
     ssize_t line_size;
-    char *input_line = get_line_from_input(&line_size);
-    unsigned int number_of_line = 1, allocated_size = STARTING_SIZE, array_index = 0;
-    line_t *line_array = safe_malloc(STARTING_SIZE * sizeof(line_t));
+    char *input_line;
+    size_t capacity = STARTING_SIZE;
+    line_t *line_array = safe_malloc(capacity * sizeof(line_t));
 
-    while (input_line != NULL) {
-        change_to_lower_case(input_line);
+    while ((input_line = get_line_from_input(&line_size)) != NULL) {
+        line_t line = make_line(input_line, *number_of_line, line_size);
+        (*number_of_line)++;
 
-        line_t whole_line = make_line(input_line, number_of_line, line_size);
-        number_of_line++;
-        sort_one_line(whole_line);
-
-        if (array_index + 1 == allocated_size) {
-            allocated_size *= 2;
-            line_array = safe_realloc(line_array, allocated_size * sizeof(line_t));
+        if (*size + 1 == capacity) { // Resizing the array.
+            capacity *= 2;
+            line_array = safe_realloc(line_array, capacity * sizeof(line_t));
         }
 
-        if (!whole_line.is_comment && !whole_line.is_error && !whole_line.is_empty) {
-            line_array[array_index] = whole_line;
-            array_index++;
+        // Adding valid lines to array.
+        if (!line.is_comment && !line.is_error && !line.is_empty) {
+            sort_one_line(line);
+            line_array[*size] = line;
+            (*size)++;
         }
-
-        // print_line(whole_line);
-
         free(input_line);
-        input_line = get_line_from_input(&line_size);
     }
-
-    if (array_index > 0) {
-        sort_all_lines(line_array, array_index);
-
-        make_print_result_array(line_array, array_index, number_of_line);
-    }
-
-    free_line_array(line_array, array_index);
     free(input_line);
+
+    return line_array;
+}
+
+int main() {
+    size_t number_of_line = 1;
+    unsigned int size = 0;
+    line_t *line_array = fill_line_array(&size, &number_of_line);
+
+    if (size > 0) {
+        sort_all_lines(line_array, size);
+        get_result(line_array, size, number_of_line);
+    }
+
+    free_line_array(line_array, size);
 
     return 0;
 }
