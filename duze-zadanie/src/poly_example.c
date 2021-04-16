@@ -34,6 +34,7 @@ static Poly MakePolyHelper(poly_exp_t dummy, ...) {
   va_start(list, dummy);
   Mono *arr = calloc(count, sizeof (Mono));
   CHECK_PTR(arr);
+
   for (size_t i = 0; i < count; ++i) {
     Poly p = va_arg(list, Poly);
     arr[i] = MonoFromPoly(&p, va_arg(list, poly_exp_t));
@@ -46,6 +47,7 @@ static Poly MakePolyHelper(poly_exp_t dummy, ...) {
 }
 
 #define P(...) MakePolyHelper(0, __VA_ARGS__, PolyZero(), -1)
+
 
 static bool TestOp(Poly a, Poly b, Poly res,
                    Poly (*op)(const Poly *, const Poly *)) {

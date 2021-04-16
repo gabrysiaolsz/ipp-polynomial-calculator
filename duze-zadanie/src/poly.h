@@ -37,7 +37,7 @@ typedef struct Poly {
     poly_coeff_t coeff; ///< współczynnik
     size_t       size; ///< rozmiar wielomianu, liczba jednomianów
   };
-  /** To jest tablica przechowująca listę jednomianów. */
+  /** To jest tablica przechowująca spis jednomianów. */
   struct Mono *arr;
 } Poly;
 
@@ -78,7 +78,23 @@ static inline Poly PolyZero(void) {
   return PolyFromCoeff(0);
 }
 
-static inline bool PolyIsZero(const Poly *p);
+/**
+ * Sprawdza, czy wielomian jest współczynnikiem (czy jest to wielomian stały).
+ * @param[in] p : wielomian
+ * @return Czy wielomian jest współczynnikiem?
+ */
+static inline bool PolyIsCoeff(const Poly *p) {
+    return p->arr == NULL;
+}
+
+/**
+ * Sprawdza, czy wielomian jest tożsamościowo równy zeru.
+ * @param[in] p : wielomian
+ * @return Czy wielomian jest równy zeru?
+ */
+static inline bool PolyIsZero(const Poly *p) {
+    return PolyIsCoeff(p) && p->coeff == 0;
+}
 
 /**
  * Tworzy jednomian @f$px_i^n@f$.
@@ -93,28 +109,10 @@ static inline Mono MonoFromPoly(const Poly *p, poly_exp_t n) {
 }
 
 /**
- * Sprawdza, czy wielomian jest współczynnikiem (czy jest to wielomian stały).
- * @param[in] p : wielomian
- * @return Czy wielomian jest współczynnikiem?
- */
-static inline bool PolyIsCoeff(const Poly *p) {
-  return p->arr == NULL;
-}
-
-/**
- * Sprawdza, czy wielomian jest tożsamościowo równy zeru.
- * @param[in] p : wielomian
- * @return Czy wielomian jest równy zeru?
- */
-static inline bool PolyIsZero(const Poly *p) {
-  return PolyIsCoeff(p) && p->coeff == 0;
-}
-
-/**
  * Usuwa wielomian z pamięci.
  * @param[in] p : wielomian
  */
-void PolyDestroy(Poly *p);
+void PolyDestroy(Poly *p); //TODO poly destroy
 
 /**
  * Usuwa jednomian z pamięci.
@@ -129,7 +127,7 @@ static inline void MonoDestroy(Mono *m) {
  * @param[in] p : wielomian
  * @return skopiowany wielomian
  */
-Poly PolyClone(const Poly *p);
+Poly PolyClone(const Poly *p); //TODO poly clone
 
 /**
  * Robi pełną, głęboką kopię jednomianu.
@@ -146,7 +144,7 @@ static inline Mono MonoClone(const Mono *m) {
  * @param[in] q : wielomian @f$q@f$
  * @return @f$p + q@f$
  */
-Poly PolyAdd(const Poly *p, const Poly *q);
+Poly PolyAdd(const Poly *p, const Poly *q); //TODO poly add
 
 /**
  * Sumuje listę jednomianów i tworzy z nich wielomian.
@@ -155,7 +153,7 @@ Poly PolyAdd(const Poly *p, const Poly *q);
  * @param[in] monos : tablica jednomianów
  * @return wielomian będący sumą jednomianów
  */
-Poly PolyAddMonos(size_t count, const Mono monos[]);
+Poly PolyAddMonos(size_t count, const Mono monos[]); //TODO poly add monos
 
 /**
  * Mnoży dwa wielomiany.
@@ -163,14 +161,14 @@ Poly PolyAddMonos(size_t count, const Mono monos[]);
  * @param[in] q : wielomian @f$q@f$
  * @return @f$p * q@f$
  */
-Poly PolyMul(const Poly *p, const Poly *q);
+Poly PolyMul(const Poly *p, const Poly *q); //TODO poly multiplication
 
 /**
  * Zwraca przeciwny wielomian.
  * @param[in] p : wielomian @f$p@f$
  * @return @f$-p@f$
  */
-Poly PolyNeg(const Poly *p);
+Poly PolyNeg(const Poly *p); //TODO poly neg
 
 /**
  * Odejmuje wielomian od wielomianu.
@@ -178,7 +176,7 @@ Poly PolyNeg(const Poly *p);
  * @param[in] q : wielomian @f$q@f$
  * @return @f$p - q@f$
  */
-Poly PolySub(const Poly *p, const Poly *q);
+Poly PolySub(const Poly *p, const Poly *q); //TODO poly substraction
 
 /**
  * Zwraca stopień wielomianu ze względu na zadaną zmienną (-1 dla wielomianu
@@ -190,14 +188,14 @@ Poly PolySub(const Poly *p, const Poly *q);
  * @param[in] var_idx : indeks zmiennej
  * @return stopień wielomianu @p p z względu na zmienną o indeksie @p var_idx
  */
-poly_exp_t PolyDegBy(const Poly *p, size_t var_idx);
+poly_exp_t PolyDegBy(const Poly *p, size_t var_idx); //TODO poly deg by
 
 /**
  * Zwraca stopień wielomianu (-1 dla wielomianu tożsamościowo równego zeru).
  * @param[in] p : wielomian
  * @return stopień wielomianu @p p
  */
-poly_exp_t PolyDeg(const Poly *p);
+poly_exp_t PolyDeg(const Poly *p); //TODO poly deg
 
 /**
  * Sprawdza równość dwóch wielomianów.
@@ -205,7 +203,7 @@ poly_exp_t PolyDeg(const Poly *p);
  * @param[in] q : wielomian @f$q@f$
  * @return @f$p = q@f$
  */
-bool PolyIsEq(const Poly *p, const Poly *q);
+bool PolyIsEq(const Poly *p, const Poly *q); //TODO poly is equal
 
 /**
  * Wylicza wartość wielomianu w punkcie @p x.
@@ -218,6 +216,6 @@ bool PolyIsEq(const Poly *p, const Poly *q);
  * @param[in] x : wartość argumentu @f$x@f$
  * @return @f$p(x, x_0, x_1, \ldots)@f$
  */
-Poly PolyAt(const Poly *p, poly_coeff_t x);
+Poly PolyAt(const Poly *p, poly_coeff_t x); //TODO poly at
 
 #endif /* __POLY_H__ */
