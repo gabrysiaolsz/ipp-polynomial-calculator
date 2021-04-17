@@ -112,7 +112,7 @@ static inline Mono MonoFromPoly(const Poly *p, poly_exp_t n) {
  * Usuwa wielomian z pamięci.
  * @param[in] p : wielomian
  */
-void PolyDestroy(Poly *p); //TODO poly destroy
+void PolyDestroy(Poly *p);
 
 /**
  * Usuwa jednomian z pamięci.
@@ -153,7 +153,7 @@ Poly PolyAdd(const Poly *p, const Poly *q); //TODO poly add
  * @param[in] monos : tablica jednomianów
  * @return wielomian będący sumą jednomianów
  */
-Poly PolyAddMonos(size_t count, const Mono monos[]); //TODO poly add monos
+Poly PolyAddMonos(size_t count, const Mono monos[]);
 
 /**
  * Mnoży dwa wielomiany.
