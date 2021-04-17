@@ -96,6 +96,8 @@ static inline bool PolyIsZero(const Poly *p) {
     return PolyIsCoeff(p) && p->coeff == 0;
 }
 
+void print_poly(const Poly *p);
+
 /**
  * Tworzy jednomian @f$px_i^n@f$.
  * Przejmuje na własność zawartość struktury wskazywanej przez @p p.
