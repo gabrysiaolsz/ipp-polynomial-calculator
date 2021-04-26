@@ -67,11 +67,6 @@ static Poly MakePolyHelper(poly_exp_t dummy, ...) {
 
 static bool TestAddMonos(size_t count, Mono monos[], Poly res) {
   Poly b = PolyAddMonos(count, monos);
-  printf("1) ");
-  print_poly(&b);
-  printf("2) ");
-  print_poly(&res);
-  printf("\n");
   bool is_eq = PolyIsEq(&b, &res);
   PolyDestroy(&b);
   PolyDestroy(&res);
@@ -197,23 +192,23 @@ static bool SimpleAddMonosTest(void) {
     Mono m[] = {M(C(1), 0), M(C(1), 0)};
     res &= TestAddMonos(2, m, C(2));
   }
-//  {
-//    Mono m[] = {M(C(1), 1), M(C(1), 1)};
-//    res &= TestAddMonos(2, m, P(C(2), 1));
-//  }
-//  {
-//    Mono m[] = {M(P(C(-1), 1), 0), M(P(C(1), 1), 0)};
-//    res &= TestAddMonos(2, m, C(0));
-//  }
-//  {
-//    Mono m[] = {M(P(C(-1), 0), 1),
-//                M(P(C(1), 0), 1),
-//                M(C(2), 0),
-//                M(C(1), 1),
-//                M(P(C(2), 1), 2),
-//                M(P(C(2), 2), 2)};
-//    res &= TestAddMonos(6, m, P(C(2), 0, C(1), 1, P(C(2), 1, C(2), 2), 2));
-//  }
+  {
+    Mono m[] = {M(C(1), 1), M(C(1), 1)};
+    res &= TestAddMonos(2, m, P(C(2), 1));
+  }
+  {
+    Mono m[] = {M(P(C(-1), 1), 0), M(P(C(1), 1), 0)};
+    res &= TestAddMonos(2, m, C(0));
+  }
+  {
+    Mono m[] = {M(P(C(-1), 0), 1),
+                M(P(C(1), 0), 1),
+                M(C(2), 0),
+                M(C(1), 1),
+                M(P(C(2), 1), 2),
+                M(P(C(2), 2), 2)};
+    res &= TestAddMonos(6, m, P(C(2), 0, C(1), 1, P(C(2), 1, C(2), 2), 2));
+  }
   return res;
 }
 
@@ -319,7 +314,7 @@ static bool SimpleAddMonosTest(void) {
 
 int main() {
 //  assert(SimpleAddTest());
-    printf("test %d\n", SimpleAddMonosTest());
+    printf("simple add monos test %d\n", SimpleAddMonosTest());
 //  assert(SimpleMulTest());
 //  assert(SimpleNegTest());
 //  assert(SimpleSubTest());

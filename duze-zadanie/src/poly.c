@@ -121,6 +121,38 @@ size_t count_different_exponents(size_t count, Mono *monos) {
     return result;
 }
 
+//bool is_mono_zero(Mono *mono);
+//
+//bool is_poly_zero(Poly *poly){
+//    if(poly->arr == NULL){
+//        return is_poly_zero(poly);
+//    }
+//    else{
+//        assert(poly->arr != NULL);
+//        for(size_t i = 0; i < poly->size; i++){
+//            return is_mono_zero(&poly->arr[i]);
+//        }
+//    }
+//}
+
+bool MonoIsZero(Mono *mono){
+    return PolyIsZero(&mono->p);
+}
+
+bool RecursiveMonoIsZero(Mono *mono){
+    if(PolyIsCoeff((const Poly *)&mono->p)){
+        return PolyIsZero((const Poly *)&mono->p);
+    }
+    else{
+        for(size_t i = 0; i < mono->p.size; i++){
+            if(!RecursiveMonoIsZero(&mono->p.arr[i])){
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 Mono add_monos(Mono *first, Mono *second);
 
 /**
@@ -141,27 +173,39 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
     new_poly.arr = safe_malloc(new_poly.size * sizeof(Mono));
     size_t poly_i = 0, monos_i = 0;
 
+    // Dodaje każdy jednomian
     while(monos_i < count){
         new_poly.arr[poly_i] = MonoClone(&monos[monos_i]);
         monos_i++;
 
         while(monos_i < count && monos[monos_i].exp == monos[monos_i - 1].exp){
             new_poly.arr[poly_i] = add_monos(&new_poly.arr[poly_i], (Mono*) &monos[monos_i]);
+
+            if(RecursiveMonoIsZero(&new_poly.arr[poly_i])){
+                MonoDestroy(&new_poly.arr[poly_i]);
+                new_poly.arr[poly_i] = (Mono) {.exp = new_poly.arr[poly_i].exp, .p = PolyZero()};
+            }
             monos_i++;
         }
 
-        poly_i++;
+        //sprawdzam czy nie wyszedł jednomian zerowy
+        if(MonoIsZero(&new_poly.arr[poly_i])){
+            MonoDestroy(&new_poly.arr[poly_i]);
+        }
+        else{
+            poly_i++;
+        }
     }
 
-    if(count > 1 && monos[count - 1].exp != monos[count - 2].exp){
+    if(count > 1 && monos[count - 1].exp != monos[count - 2].exp && poly_i < new_poly.size){
         new_poly.arr[poly_i] = MonoClone(&monos[count - 1]);
-    } //TODO czy to jest wgl potrzebne
+    }
 
     new_poly.size = poly_i;
 
-    if(poly_i == 1 && new_poly.arr[0].exp == 0){
+    if(new_poly.arr[0].exp == 0 || new_poly.size == 0){
         new_poly.coeff = new_poly.arr[0].p.coeff;
-        free(new_poly.arr); //TODO poly destroy??
+        free(new_poly.arr);
         new_poly.arr = NULL;
     }
 
@@ -210,7 +254,8 @@ Poly PolyAdd(const Poly *p, const Poly *q) {
 
     if (PolyIsCoeff(p) && PolyIsCoeff(q)) { // Obydwa są wielomianami stałymi.
         return PolyFromCoeff(p->coeff + q->coeff);
-    } else if (!PolyIsCoeff(p) && !PolyIsCoeff(q)) { // Obydwa są wielomianami niestałymi.
+    }
+    else if (!PolyIsCoeff(p) && !PolyIsCoeff(q)) { // Obydwa są wielomianami niestałymi.
         new_poly.size = p->size + q->size;           // TODO is it ok?
         new_poly.arr = safe_malloc(new_poly.size * sizeof(Mono));
         size_t p_i = 0, q_i = 0, new_poly_i = 0;
@@ -256,12 +301,11 @@ Poly PolyAdd(const Poly *p, const Poly *q) {
 
 void print_poly(const Poly *p){
     if(PolyIsCoeff(p)) {
-        printf("jest coeff rowny %ld\n", p->coeff);
+        printf("coeff rowny %ld\n", p->coeff);
         return;
     }
     for(size_t i = 0; i < p->size; i++){
-        printf("exp: %d ", p->arr[i].exp);
-        printf("wspolczynnik: ");
+        printf("exp: %d, ", p->arr[i].exp);
         print_poly(&(p->arr[i].p));
     }
 }
@@ -270,6 +314,9 @@ void print_poly(const Poly *p){
 Mono add_monos(Mono *first, Mono *second) {
     assert(first->exp == second->exp);
 
-    return (Mono){.exp = first->exp,
+    Mono NewMono = {.exp = first->exp,
                   .p = PolyAdd((const Poly *)&first->p, (const Poly *)&second->p)};
+
+    MonoDestroy(first);
+    return NewMono;
 }
