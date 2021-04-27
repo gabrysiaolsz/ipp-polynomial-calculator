@@ -100,25 +100,6 @@ void SortMonosByExp(size_t count, Mono *monos) {
 }
 
 /**
- * Zlicza różne wykładniki w tablicy jednomianów.
- * @param count : rozmiar tablicy jednomianów,
- * @param monos : tablica jednomianów,
- * @return liczba różnych wykładników.
- */
-size_t CountDifferentExponents(size_t count, Mono *monos) {
-    if (count == 0) {
-        return 0;
-    }
-    size_t result = 1;
-    for (size_t i = 0; i < count - 1; i++) {
-        if (monos[i].exp != monos[i + 1].exp) {
-            result++;
-        }
-    }
-    return result;
-}
-
-/**
  * Płytko sprawdza, czy jednomian jest zerowy.
  * @param mono : jednomian do sprawdzenia,
  * @return true - jeśli jednomian jest zerowy, false w przeciwnym przypadku.
@@ -133,8 +114,8 @@ bool MonoIsZero(Mono *mono) {
  * @return true - jeśli jednomian jest zerowy, false w przeciwnym przypadku.
  */
 bool RecursiveMonoIsZero(Mono *mono) {
-    if (PolyIsCoeff((const Poly *)&mono->p)) {
-        return PolyIsZero((const Poly *)&mono->p);
+    if (PolyIsCoeff(&mono->p)) {
+        return PolyIsZero(&mono->p);
     } else {
         for (size_t i = 0; i < mono->p.size; i++) {
             if (!RecursiveMonoIsZero(&mono->p.arr[i])) {
@@ -146,31 +127,36 @@ bool RecursiveMonoIsZero(Mono *mono) {
 }
 
 Mono AddMonos(Mono *first, Mono *second);
+// TODO rozmowa z peczarem o safemallocu
 
-Poly AddFirstMonos(size_t count, const Mono monos[], size_t *polyI, size_t *monosI) {
-    Poly newPoly = {.size = count, .arr = SafeMalloc(newPoly.size * sizeof(Mono))};
+Poly AddMonosArray(size_t count, Mono *monos) {
+    size_t polyI = 0, monosI = 0;
+    Poly newPoly = {.size = count, .arr = SafeMalloc(count * sizeof(Mono))};
 
-    while (*monosI < count) {
-        newPoly.arr[*polyI] = MonoClone(&monos[*monosI]);
-        (*monosI)++;
+    while (monosI < count) {
+        newPoly.arr[polyI] = MonoClone(&monos[monosI]);
+        monosI++;
 
-        while (*monosI < count && monos[*monosI].exp == monos[*monosI - 1].exp) {
-            newPoly.arr[*polyI] = AddMonos(&newPoly.arr[*polyI], (Mono *)&monos[*monosI]);
+        while (monosI < count && monos[monosI].exp == monos[monosI - 1].exp) {
+            Mono temp = newPoly.arr[polyI];
+            newPoly.arr[polyI] = AddMonos(&temp, &monos[monosI]);
+            MonoDestroy(&temp);
 
-            if (RecursiveMonoIsZero(&newPoly.arr[*polyI])) {
-                MonoDestroy(&newPoly.arr[*polyI]);
-                newPoly.arr[*polyI] = (Mono){.exp = newPoly.arr[*polyI].exp, .p = PolyZero()};
+            if (RecursiveMonoIsZero(&newPoly.arr[polyI])) {
+                poly_exp_t tempExp = newPoly.arr[polyI].exp;
+                MonoDestroy(&newPoly.arr[polyI]);
+                newPoly.arr[polyI] = (Mono){.exp = tempExp, .p = PolyZero()};
             }
-            (*monosI)++;
+            monosI++;
         }
 
-        if (MonoIsZero(&newPoly.arr[*polyI])) {
-            MonoDestroy(&newPoly.arr[*polyI]);
+        if (MonoIsZero(&newPoly.arr[polyI])) {
+            MonoDestroy(&newPoly.arr[polyI]);
         } else {
-            (*polyI)++;
+            polyI++;
         }
     }
-    newPoly.size = *polyI;
+    newPoly.size = polyI;
     return newPoly;
 }
 
@@ -184,14 +170,9 @@ Poly AddFirstMonos(size_t count, const Mono monos[], size_t *polyI, size_t *mono
 Poly PolyAddMonos(size_t count, const Mono monos[]) {
     SortMonosByExp(count, (Mono *)monos);
 
-    size_t polyIndex = 0, monosIndex = 0;
-    Poly newPoly = AddFirstMonos(count, monos, &polyIndex, &monosIndex);
+    Poly newPoly = AddMonosArray(count, (Mono *)monos);
 
-    if (count > 1 && monos[count - 1].exp != monos[count - 2].exp && polyIndex < newPoly.size) {
-        newPoly.arr[polyIndex] = MonoClone(&monos[count - 1]);
-    }
-
-    if (newPoly.arr[0].exp == 0 || newPoly.size == 0) {
+    if (newPoly.size == 0) {
         newPoly.coeff = newPoly.arr[0].p.coeff;
         free(newPoly.arr);
         newPoly.arr = NULL;
@@ -218,20 +199,22 @@ Poly AddCoeffToPoly(const Poly *p, const Poly *q) {
         return PolyClone(q);
     }
 
-    Poly newPoly = {.size = CountDifferentExponents(q->size, q->arr) + 1,
-                    .arr = SafeMalloc(newPoly.size * sizeof(Mono))};
+    size_t size = q->size + 1;
+    Poly newPoly = {.size = size, .arr = SafeMalloc(size * sizeof(Mono))};
+
     newPoly.arr[0] = MonoFromPoly(p, 0);
-    size_t i = 0;
+    size_t newPolyIndex = 0;
 
     if (q->arr[0].exp == 0) { // Pierwszy element z wielomianu niestałego to c * x^0.
-        i++;
         newPoly.arr[0].p.coeff += q->arr[0].p.coeff;
         newPoly.size--;
+        newPolyIndex++;
     }
 
-    while (i < q->size) {
-        newPoly.arr[i] = MonoClone(&q->arr[i]);
+    while (newPolyIndex < q->size) {
+        newPoly.arr[newPolyIndex] = MonoClone(&q->arr[newPolyIndex]);
     }
+
     return newPoly;
 }
 
@@ -244,10 +227,10 @@ Poly AddCoeffToPoly(const Poly *p, const Poly *q) {
  * @param *newPolyIndex : wskaźnik na indeks od którego zacząć zapisywanie jednomianów.
  * @return
  */
-void CopyMonos(const Poly *p, size_t *pIndex, Poly *newPoly, size_t *newPolyIndex) {
-    while (*pIndex < p->size) {
-        newPoly->arr[*newPolyIndex] = MonoClone(&p->arr[*pIndex]);
-        (*pIndex)++, (*newPolyIndex)++;
+void CopyMonos(const Poly *p, size_t pIndex, Poly *newPoly, size_t *newPolyIndex) {
+    while (pIndex < p->size) {
+        newPoly->arr[*newPolyIndex] = MonoClone(&p->arr[pIndex]);
+        pIndex++, (*newPolyIndex)++;
     }
 }
 
@@ -258,7 +241,9 @@ void CopyMonos(const Poly *p, size_t *pIndex, Poly *newPoly, size_t *newPolyInde
  * @return wielomian będący sumą powyższych wielomianów.
  */
 Poly AddNonCoeffPolys(const Poly *p, const Poly *q) {
-    Poly newPoly = {.size = p->size + q->size, .arr = SafeMalloc(newPoly.size * sizeof(Mono))};
+    Poly newPoly = {.size = p->size + q->size,
+                    .arr = SafeMalloc((p->size + q->size) * sizeof(Mono))};
+    // TODO sprawdzic czy nie robie tak wiecej
     size_t pIndex = 0, qIndex = 0, newPolyIndex = 0;
 
     while (pIndex < p->size && qIndex < q->size) {
@@ -278,9 +263,9 @@ Poly AddNonCoeffPolys(const Poly *p, const Poly *q) {
     }
 
     if (pIndex < p->size) {
-        CopyMonos(p, &pIndex, &newPoly, &newPolyIndex);
+        CopyMonos(p, pIndex, &newPoly, &newPolyIndex);
     } else if (qIndex < q->size) {
-        CopyMonos(q, &qIndex, &newPoly, &newPolyIndex);
+        CopyMonos(q, qIndex, &newPoly, &newPolyIndex);
     }
     newPoly.size = newPolyIndex;
 
@@ -309,7 +294,6 @@ Poly PolyAdd(const Poly *p, const Poly *q) {
 
 /**
  * Sumuje dwa jednomiany o tym samym wykładniku.
- * Przejmuje na własność zawartość pierwszy jednomian @p second.
  * @param[in] *first : pierwszy jednomian,
  * @param[in] *second : drugi jednomian,
  * @return jednomian będący sumą jednomianów.
@@ -317,11 +301,7 @@ Poly PolyAdd(const Poly *p, const Poly *q) {
 Mono AddMonos(Mono *first, Mono *second) {
     assert(first->exp == second->exp);
 
-    Mono NewMono = {.exp = first->exp,
-                    .p = PolyAdd((const Poly *)&first->p, (const Poly *)&second->p)};
-
-    MonoDestroy(first);
-    return NewMono;
+    return (Mono){.exp = first->exp, .p = PolyAdd(&first->p, &second->p)};
 }
 
 // funkcja do debugowania
