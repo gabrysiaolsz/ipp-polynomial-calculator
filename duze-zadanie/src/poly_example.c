@@ -179,37 +179,37 @@ static bool TestAddMonos(size_t count, Mono monos[], Poly res) {
 //}
 
 static bool SimpleAddMonosTest(void) {
-  bool res = true;
-  {
-    Mono m[] = {M(C(1), 0), M(C(2), 0)};
-    res &= TestAddMonos(2, m, C(3));
-  }
-  {
-    Mono m[] = {M(C(-1), 1), M(C(1), 1)};
-    res &= TestAddMonos(2, m, C(0));
-  }
-  {
-    Mono m[] = {M(C(1), 0), M(C(1), 0)};
-    res &= TestAddMonos(2, m, C(2));
-  }
-  {
-    Mono m[] = {M(C(1), 1), M(C(1), 1)};
-    res &= TestAddMonos(2, m, P(C(2), 1));
-  }
-  {
-    Mono m[] = {M(P(C(-1), 1), 0), M(P(C(1), 1), 0)};
-    res &= TestAddMonos(2, m, C(0));
-  }
-  {
-    Mono m[] = {M(P(C(-1), 0), 1),
-                M(P(C(1), 0), 1),
-                M(C(2), 0),
-                M(C(1), 1),
-                M(P(C(2), 1), 2),
-                M(P(C(2), 2), 2)};
-    res &= TestAddMonos(6, m, P(C(2), 0, C(1), 1, P(C(2), 1, C(2), 2), 2));
-  }
-  return res;
+    bool res = true;
+    {
+        Mono m[] = {M(C(-1), 0), M(C(1), 0)};
+        res &= TestAddMonos(2, m, C(0));
+    }
+    {
+        Mono m[] = {M(C(-1), 1), M(C(1), 1)};
+        res &= TestAddMonos(2, m, C(0));
+    }
+    {
+        Mono m[] = {M(C(1), 0), M(C(1), 0)};
+        res &= TestAddMonos(2, m, C(2));
+    }
+    {
+        Mono m[] = {M(C(1), 1), M(C(1), 1)};
+        res &= TestAddMonos(2, m, P(C(2), 1));
+    }
+    {
+        Mono m[] = {M(P(C(-1), 1), 0), M(P(C(1), 1), 0)};
+        res &= TestAddMonos(2, m, C(0));
+    }
+    {
+        Mono m[] = {M(P(C(-1), 0), 1),
+                    M(P(C(1), 0), 1),
+                    M(C(2), 0),
+                    M(C(1), 1),
+                    M(P(C(2), 1), 2),
+                    M(P(C(2), 2), 2)};
+        res &= TestAddMonos(6, m, P(C(2), 0, C(1), 1, P(C(2), 1, C(2), 2), 2));
+    }
+    return res;
 }
 
 //static bool SimpleMulTest(void) {
@@ -324,3 +324,4 @@ int main() {
 //  assert(SimpleAtTest());
 //  assert(OverflowTest());
 }
+
