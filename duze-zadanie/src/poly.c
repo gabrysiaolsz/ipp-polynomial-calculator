@@ -321,3 +321,48 @@ Poly PolyNeg(const Poly *p) {
 
     return polyCopy;
 }
+
+/**
+ * Odejmuje wielomian od wielomianu.
+ * @param[in] p : wielomian @f$p@f$
+ * @param[in] q : wielomian @f$q@f$
+ * @return @f$p - q@f$
+ */
+Poly PolySub(const Poly *p, const Poly *q){
+
+    Poly minusQ = PolyNeg(q);
+    Poly resultPoly = PolyAdd(p, &minusQ);
+    PolyDestroy(&minusQ);
+
+    return resultPoly;
+}
+
+poly_exp_t RecursivePolyDeg(const Poly *p, poly_exp_t tmp, poly_exp_t *max){
+    if(PolyIsZero(p)){
+        return -1;
+    }
+    if(PolyIsCoeff(p)){
+        return 0;
+    }
+
+    for(size_t i = 0; i < p->size; i++){
+        tmp += p->arr[i].exp;
+        if(tmp > *max){
+            *max = tmp;
+        }
+        RecursivePolyDeg(&p->arr[i].p, tmp, max);
+    }
+    return tmp;
+}
+
+/**
+ * Zwraca stopień wielomianu (-1 dla wielomianu tożsamościowo równego zeru).
+ * @param[in] p : wielomian
+ * @return stopień wielomianu @p p
+ */
+poly_exp_t PolyDeg(const Poly *p){
+    poly_exp_t max = -1;
+    RecursivePolyDeg(p, 0, &max);
+
+    return max - 1;
+}
