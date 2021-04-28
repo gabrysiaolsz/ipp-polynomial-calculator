@@ -172,7 +172,7 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
 
     Poly newPoly = AddMonosArray(count, (Mono *)monos);
 
-    if (newPoly.size == 0) {
+    if (newPoly.size == 0 || (newPoly.size == 1 && newPoly.arr[0].exp == 0)) {
         newPoly.coeff = newPoly.arr[0].p.coeff;
         free(newPoly.arr);
         newPoly.arr = NULL;
@@ -213,6 +213,7 @@ Poly AddCoeffToPoly(const Poly *p, const Poly *q) {
 
     while (newPolyIndex < q->size) {
         newPoly.arr[newPolyIndex] = MonoClone(&q->arr[newPolyIndex]);
+        newPolyIndex++;
     }
 
     return newPoly;
@@ -302,6 +303,33 @@ Mono AddMonos(Mono *first, Mono *second) {
     assert(first->exp == second->exp);
 
     return (Mono){.exp = first->exp, .p = PolyAdd(&first->p, &second->p)};
+}
+
+/**
+ * Zwraca przeciwny jednomian.
+ * @param[in] p : jednomian @f$m@f$
+ * @return @f$-m@f$
+ */
+Mono MonoNeg(const Mono *m){
+    return (Mono) {.p = PolyNeg(&m->p), .exp = m->exp};
+}
+
+/**
+ * Zwraca przeciwny wielomian.
+ * @param[in] p : wielomian @f$p@f$
+ * @return @f$-p@f$
+ */
+Poly PolyNeg(const Poly *p) {
+    if (PolyIsCoeff(p))
+        return (Poly){.arr = NULL, .coeff = (-1) * p->coeff};
+
+    Poly polyCopy = {.size = p->size, .arr = SafeMalloc(polyCopy.size * sizeof(Mono))};
+
+    for (size_t i = 0; i < p->size; i++) {
+        polyCopy.arr[i] = MonoNeg(&p->arr[i]);
+    }
+
+    return polyCopy;
 }
 
 // funkcja do debugowania

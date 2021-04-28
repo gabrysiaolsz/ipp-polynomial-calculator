@@ -97,6 +97,7 @@ static inline bool PolyIsZero(const Poly *p) {
 }
 
 void print_poly(const Poly *p);
+//TODO usunąć pod koniec
 
 /**
  * Tworzy jednomian @f$px_i^n@f$.
@@ -129,7 +130,7 @@ static inline void MonoDestroy(Mono *m) {
  * @param[in] p : wielomian
  * @return skopiowany wielomian
  */
-Poly PolyClone(const Poly *p); //TODO poly clone
+Poly PolyClone(const Poly *p);
 
 /**
  * Robi pełną, głęboką kopię jednomianu.
@@ -146,7 +147,7 @@ static inline Mono MonoClone(const Mono *m) {
  * @param[in] q : wielomian @f$q@f$
  * @return @f$p + q@f$
  */
-Poly PolyAdd(const Poly *p, const Poly *q); //TODO poly add
+Poly PolyAdd(const Poly *p, const Poly *q);
 
 /**
  * Sumuje listę jednomianów i tworzy z nich wielomian.
@@ -205,7 +206,7 @@ poly_exp_t PolyDeg(const Poly *p); //TODO poly deg
  * @param[in] q : wielomian @f$q@f$
  * @return @f$p = q@f$
  */
-bool PolyIsEq(const Poly *p, const Poly *q); //TODO poly is equal
+bool PolyIsEq(const Poly *p, const Poly *q);
 
 /**
  * Wylicza wartość wielomianu w punkcie @p x.
