@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// TODO camel case
-
 /**
  * Usuwa wielomian z pamięci.
  * @param[in] p : wielomian do usunięcia.
@@ -30,7 +28,7 @@ Poly PolyClone(const Poly *p) {
     if (PolyIsCoeff(p))
         return (Poly){.arr = NULL, .coeff = p->coeff};
 
-    Poly polyCopy = {.size = p->size, .arr = SafeMalloc(polyCopy.size * sizeof(Mono))};
+    Poly polyCopy = {.size = p->size, .arr = SafeMalloc(p->size * sizeof(Mono))};
 
     for (size_t i = 0; i < p->size; i++) {
         polyCopy.arr[i] = MonoClone(&p->arr[i]);
@@ -38,6 +36,7 @@ Poly PolyClone(const Poly *p) {
 
     return polyCopy;
 }
+
 /**
  * Sprawdza równość dwóch jednomianów.
  * @param[in] p : jednomian @f$m@f$,
@@ -127,7 +126,6 @@ bool RecursiveMonoIsZero(Mono *mono) {
 }
 
 Mono AddMonos(Mono *first, Mono *second);
-// TODO rozmowa z peczarem o safemallocu
 
 Poly AddMonosArray(size_t count, Mono *monos) {
     size_t polyI = 0, monosI = 0;
@@ -160,6 +158,28 @@ Poly AddMonosArray(size_t count, Mono *monos) {
     return newPoly;
 }
 
+bool RecursiveIsCoeff(const Poly *p) {
+    if (PolyIsCoeff(p)) {
+        return true;
+    }
+    for (size_t i = 0; i < p->size; ++i) {
+        assert(i == 0 || MonoGetExp(&p->arr[i]) > MonoGetExp(&p->arr[i - 1]));
+    }
+    if (p->size == 0) {
+        return true;
+    }
+    if (p->arr[0].exp != 0) {
+        return false;
+    }
+    for (size_t i = 1; i < p->size; i++) {
+        if (!RecursiveMonoIsZero(&p->arr[i])) {
+            return false;
+        }
+    }
+
+    return RecursiveIsCoeff(&p->arr[0].p);
+}
+
 /**
  * Sumuje tablicę jednomianów i tworzy z nich wielomian.
  * Przejmuje na własność zawartość tablicy @p monos.
@@ -172,7 +192,7 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
 
     Poly newPoly = AddMonosArray(count, (Mono *)monos);
 
-    if (newPoly.size == 0 || (newPoly.size == 1 && newPoly.arr[0].exp == 0)) {
+    if (RecursiveIsCoeff(&newPoly)) {
         newPoly.coeff = newPoly.arr[0].p.coeff;
         free(newPoly.arr);
         newPoly.arr = NULL;
@@ -200,39 +220,20 @@ Poly AddCoeffToPoly(const Poly *p, const Poly *q) {
     }
 
     size_t size = q->size + 1;
-    Poly newPoly = {.size = size, .arr = SafeMalloc(size * sizeof(Mono))};
 
-    newPoly.arr[0] = MonoFromPoly(p, 0);
-    size_t newPolyIndex = 0;
+    Mono *monos = SafeMalloc(size * sizeof(Mono));
 
-    if (q->arr[0].exp == 0) { // Pierwszy element z wielomianu niestałego to c * x^0.
-        newPoly.arr[0].p.coeff += q->arr[0].p.coeff;
-        newPoly.size--;
-        newPolyIndex++;
+    monos[0] = MonoFromPoly(p, 0);
+
+    for (size_t j = 1; j < size; j++) {
+        monos[j] = MonoClone(&q->arr[j - 1]);
     }
 
-    while (newPolyIndex < q->size) {
-        newPoly.arr[newPolyIndex] = MonoClone(&q->arr[newPolyIndex]);
-        newPolyIndex++;
-    }
+    Poly newPoly = PolyAddMonos(size, monos);
+
+    free(monos);
 
     return newPoly;
-}
-
-/**
- * Robi głęboką kopię jednomianów od danego indeksu, zapisując je w przekazanym w argumencie
- * wielomianie wynikowym,
- * @param *p : wskaźnik na wielomian z którego będziemy kopiować jednomiany,
- * @param *pIndex : wskaźnik na indeks od którego miejsca zacząć kopiowanie,
- * @param *newPoly : wskaźnik na wielomian wynikowy do którego przekopiujemy jednomiany,
- * @param *newPolyIndex : wskaźnik na indeks od którego zacząć zapisywanie jednomianów.
- * @return
- */
-void CopyMonos(const Poly *p, size_t pIndex, Poly *newPoly, size_t *newPolyIndex) {
-    while (pIndex < p->size) {
-        newPoly->arr[*newPolyIndex] = MonoClone(&p->arr[pIndex]);
-        pIndex++, (*newPolyIndex)++;
-    }
 }
 
 /**
@@ -242,33 +243,20 @@ void CopyMonos(const Poly *p, size_t pIndex, Poly *newPoly, size_t *newPolyIndex
  * @return wielomian będący sumą powyższych wielomianów.
  */
 Poly AddNonCoeffPolys(const Poly *p, const Poly *q) {
-    Poly newPoly = {.size = p->size + q->size,
-                    .arr = SafeMalloc((p->size + q->size) * sizeof(Mono))};
-    // TODO sprawdzic czy nie robie tak wiecej
-    size_t pIndex = 0, qIndex = 0, newPolyIndex = 0;
+    size_t size = p->size + q->size;
 
-    while (pIndex < p->size && qIndex < q->size) {
-        if (p->arr[pIndex].exp == q->arr[qIndex].exp) {
-            newPoly.arr[newPolyIndex] = AddMonos(&p->arr[pIndex], &q->arr[qIndex]);
-            pIndex++, qIndex++;
-        } else {
-            if (p->arr[pIndex].exp < q->arr[qIndex].exp) {
-                newPoly.arr[newPolyIndex] = MonoClone(&p->arr[pIndex]);
-                pIndex++;
-            } else {
-                newPoly.arr[newPolyIndex] = MonoClone(&q->arr[qIndex]);
-                qIndex++;
-            }
-        }
-        newPolyIndex++;
+    Mono *monos = SafeMalloc(size * sizeof(Mono));
+
+    for (size_t i = 0; i < p->size; i++) {
+        monos[i] = MonoClone(&p->arr[i]);
+    }
+    for (size_t j = 0; j < q->size; j++) {
+        monos[p->size + j] = MonoClone(&q->arr[j]);
     }
 
-    if (pIndex < p->size) {
-        CopyMonos(p, pIndex, &newPoly, &newPolyIndex);
-    } else if (qIndex < q->size) {
-        CopyMonos(q, qIndex, &newPoly, &newPolyIndex);
-    }
-    newPoly.size = newPolyIndex;
+    Poly newPoly = PolyAddMonos(size, monos);
+
+    free(monos);
 
     return newPoly;
 }
@@ -280,17 +268,19 @@ Poly AddNonCoeffPolys(const Poly *p, const Poly *q) {
  * @return @f$p + q@f$
  */
 Poly PolyAdd(const Poly *p, const Poly *q) {
+    Poly newPoly;
     if (PolyIsCoeff(p) && PolyIsCoeff(q)) { // Obydwa są wielomianami stałymi.
         return PolyFromCoeff(p->coeff + q->coeff);
     } else if (!PolyIsCoeff(p) && !PolyIsCoeff(q)) { // Obydwa są wielomianami niestałymi.
-        return AddNonCoeffPolys(p, q);
+        newPoly = AddNonCoeffPolys(p, q);
     } else { // Jeden jest wielomianem stałym, a drugi niestałym.
         if (PolyIsCoeff(p)) {
-            return AddCoeffToPoly(p, q);
+            newPoly = AddCoeffToPoly(p, q);
         } else {
-            return AddCoeffToPoly(q, p);
+            newPoly = AddCoeffToPoly(q, p);
         }
     }
+    return newPoly;
 }
 
 /**
@@ -310,8 +300,8 @@ Mono AddMonos(Mono *first, Mono *second) {
  * @param[in] p : jednomian @f$m@f$
  * @return @f$-m@f$
  */
-Mono MonoNeg(const Mono *m){
-    return (Mono) {.p = PolyNeg(&m->p), .exp = m->exp};
+Mono MonoNeg(const Mono *m) {
+    return (Mono){.p = PolyNeg(&m->p), .exp = m->exp};
 }
 
 /**
@@ -323,24 +313,11 @@ Poly PolyNeg(const Poly *p) {
     if (PolyIsCoeff(p))
         return (Poly){.arr = NULL, .coeff = (-1) * p->coeff};
 
-    Poly polyCopy = {.size = p->size, .arr = SafeMalloc(polyCopy.size * sizeof(Mono))};
+    Poly polyCopy = {.size = p->size, .arr = SafeMalloc(p->size * sizeof(Mono))};
 
     for (size_t i = 0; i < p->size; i++) {
         polyCopy.arr[i] = MonoNeg(&p->arr[i]);
     }
 
     return polyCopy;
-}
-
-// funkcja do debugowania
-// TODO usunąć pod koniec
-void print_poly(const Poly *p) {
-    if (PolyIsCoeff(p)) {
-        printf("coeff rowny %ld\n", p->coeff);
-        return;
-    }
-    for (size_t i = 0; i < p->size; i++) {
-        printf("exp: %d, ", p->arr[i].exp);
-        print_poly(&(p->arr[i].p));
-    }
 }
