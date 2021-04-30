@@ -1,7 +1,6 @@
 #include "poly.h"
 #include "safe_memory_allocation.h"
 #include <stddef.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 /**
@@ -125,8 +124,42 @@ bool RecursiveMonoIsZero(Mono *mono) {
     }
 }
 
+/**
+ * Rekurencyjnie i głęboko sprawdza czy wielomian jest współczynnikiem.
+ * @param p : wielomian do sprawdzenia,
+ * @return true - jeśli wielomian jest współczynnikiem, false w przeciwnym przypadku.
+ */
+bool RecursivePolyIsCoeff(const Poly *p) {
+    if (PolyIsCoeff(p)) {
+        return true;
+    }
+    for (size_t i = 0; i < p->size; ++i) {
+        assert(i == 0 || MonoGetExp(&p->arr[i]) > MonoGetExp(&p->arr[i - 1]));
+    }
+    if (p->size == 0) {
+        return true;
+    }
+    if (p->arr[0].exp != 0) {
+        return false;
+    }
+    for (size_t i = 1; i < p->size; i++) {
+        if (!RecursiveMonoIsZero(&p->arr[i])) {
+            return false;
+        }
+    }
+
+    return RecursivePolyIsCoeff(&p->arr[0].p);
+}
+
 Mono AddMonos(Mono *first, Mono *second);
 
+
+/**
+ * Dodaje jednomiany z tablicy monos do siebie, tworząc nowy wielomian.
+ * @param count : liczba jednomianów do dodania,
+ * @param *monos : wskaźnik na tablicę jednomianów do dodania,
+ * @return Poly : wielomian będący wynikiem dodawania jednomianów.
+ */
 Poly AddMonosArray(size_t count, Mono *monos) {
     size_t polyI = 0, monosI = 0;
     Poly newPoly = {.size = count, .arr = SafeMalloc(count * sizeof(Mono))};
@@ -158,30 +191,8 @@ Poly AddMonosArray(size_t count, Mono *monos) {
     return newPoly;
 }
 
-bool RecursiveIsCoeff(const Poly *p) {
-    if (PolyIsCoeff(p)) {
-        return true;
-    }
-    for (size_t i = 0; i < p->size; ++i) {
-        assert(i == 0 || MonoGetExp(&p->arr[i]) > MonoGetExp(&p->arr[i - 1]));
-    }
-    if (p->size == 0) {
-        return true;
-    }
-    if (p->arr[0].exp != 0) {
-        return false;
-    }
-    for (size_t i = 1; i < p->size; i++) {
-        if (!RecursiveMonoIsZero(&p->arr[i])) {
-            return false;
-        }
-    }
-
-    return RecursiveIsCoeff(&p->arr[0].p);
-}
-
 /**
- * Sumuje tablicę jednomianów i tworzy z nich wielomian.
+ * Sumuje tablicę jednomianów i tworzy z nich wielomian. Sprawdza warunki brzegowe.
  * Przejmuje na własność zawartość tablicy @p monos.
  * @param[in] count : liczba jednomianów,
  * @param[in] monos : tablica jednomianów,
@@ -192,9 +203,10 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
 
     Poly newPoly = AddMonosArray(count, (Mono *)monos);
 
-    if (RecursiveIsCoeff(&newPoly)) {
-        newPoly.coeff = newPoly.arr[0].p.coeff;
-        free(newPoly.arr);
+    if (RecursivePolyIsCoeff(&newPoly)) {
+        poly_coeff_t tmp = newPoly.arr[0].p.coeff; // TODO pomyśleć o tym
+        PolyDestroy(&newPoly);
+        newPoly.coeff = tmp;
         newPoly.arr = NULL;
     }
 
@@ -263,9 +275,9 @@ Poly AddNonCoeffPolys(const Poly *p, const Poly *q) {
 
 /**
  * Dodaje dwa wielomiany.
- * @param[in] p : wielomian @f$p@f$
- * @param[in] q : wielomian @f$q@f$
- * @return @f$p + q@f$
+ * @param[in] p : wielomian @f$p@f$,
+ * @param[in] q : wielomian @f$q@f$,
+ * @return @f$p + q@f$.
  */
 Poly PolyAdd(const Poly *p, const Poly *q) {
     Poly newPoly;
@@ -297,8 +309,8 @@ Mono AddMonos(Mono *first, Mono *second) {
 
 /**
  * Zwraca przeciwny jednomian.
- * @param[in] p : jednomian @f$m@f$
- * @return @f$-m@f$
+ * @param[in] p : jednomian @f$m@f$,
+ * @return @f$-m@f$.
  */
 Mono MonoNeg(const Mono *m) {
     return (Mono){.p = PolyNeg(&m->p), .exp = m->exp};
@@ -306,8 +318,8 @@ Mono MonoNeg(const Mono *m) {
 
 /**
  * Zwraca przeciwny wielomian.
- * @param[in] p : wielomian @f$p@f$
- * @return @f$-p@f$
+ * @param[in] p : wielomian @f$p@f$,
+ * @return @f$-p@f$.
  */
 Poly PolyNeg(const Poly *p) {
     if (PolyIsCoeff(p))
@@ -324,12 +336,11 @@ Poly PolyNeg(const Poly *p) {
 
 /**
  * Odejmuje wielomian od wielomianu.
- * @param[in] p : wielomian @f$p@f$
- * @param[in] q : wielomian @f$q@f$
- * @return @f$p - q@f$
+ * @param[in] p : wielomian @f$p@f$,
+ * @param[in] q : wielomian @f$q@f$,
+ * @return @f$p - q@f$.
  */
-Poly PolySub(const Poly *p, const Poly *q){
-
+Poly PolySub(const Poly *p, const Poly *q) {
     Poly minusQ = PolyNeg(q);
     Poly resultPoly = PolyAdd(p, &minusQ);
     PolyDestroy(&minusQ);
@@ -337,32 +348,233 @@ Poly PolySub(const Poly *p, const Poly *q){
     return resultPoly;
 }
 
-poly_exp_t RecursivePolyDeg(const Poly *p, poly_exp_t tmp, poly_exp_t *max){
-    if(PolyIsZero(p)){
-        return -1;
-    }
-    if(PolyIsCoeff(p)){
-        return 0;
+/**
+ * Zwraca głęboki stopień jednomianu.
+ * @param[in] m : jednomian,
+ * @return stopień jednomianu @p m.
+ */
+poly_exp_t MonoDeg(const Mono *m) {
+    if (PolyIsCoeff(&m->p)) {
+        return MonoGetExp(m);
     }
 
-    for(size_t i = 0; i < p->size; i++){
-        tmp += p->arr[i].exp;
-        if(tmp > *max){
-            *max = tmp;
-        }
-        RecursivePolyDeg(&p->arr[i].p, tmp, max);
-    }
-    return tmp;
+    return MonoGetExp(m) * PolyDeg(&m->p);
 }
 
 /**
  * Zwraca stopień wielomianu (-1 dla wielomianu tożsamościowo równego zeru).
- * @param[in] p : wielomian
- * @return stopień wielomianu @p p
+ * @param[in] p : wielomian,
+ * @return stopień wielomianu @p p.
  */
-poly_exp_t PolyDeg(const Poly *p){
-    poly_exp_t max = -1;
-    RecursivePolyDeg(p, 0, &max);
+poly_exp_t PolyDeg(const Poly *p) {
+    if (PolyIsCoeff(p) && PolyIsZero(p)) {
+        return -1;
+    }
+    if (PolyIsCoeff(p)) {
+        return 0;
+    }
 
-    return max - 1;
+    poly_exp_t max = 0;
+
+    for (size_t i = 0; i < p->size; i++) {
+        poly_exp_t curr = MonoDeg(&p->arr[i]);
+        if (curr > max) {
+            max = curr;
+        }
+    }
+
+    return max;
+}
+
+/**
+ * Zwraca stopień jednomianu ze względu na zadaną zmienną.
+ * @param[in] m : jednomian,
+ * @param[in] var_idx : indeks zmiennej,
+ * @return stopień jednomianu @m p z względu na zmienną o indeksie @p var_idx.
+ */
+poly_exp_t MonoDegBy(const Mono *m, size_t var_idx) {
+    return PolyDegBy(&m->p, var_idx - 1);
+}
+
+/**
+ * Zwraca stopień wielomianu ze względu na zadaną zmienną (-1 dla wielomianu
+ * tożsamościowo równego zeru). Zmienne indeksowane są od 0.
+ * Zmienna o indeksie 0 oznacza zmienną główną tego wielomianu.
+ * Większe indeksy oznaczają zmienne wielomianów znajdujących się
+ * we współczynnikach.
+ * @param[in] p : wielomian,
+ * @param[in] var_idx : indeks zmiennej,
+ * @return stopień wielomianu @p p z względu na zmienną o indeksie @p var_idx.
+ */
+poly_exp_t PolyDegBy(const Poly *p, size_t var_idx) {
+    if (PolyIsCoeff(p) && PolyIsZero(p)) {
+        return -1;
+    }
+    if (PolyIsCoeff(p)) {
+        return 0;
+    }
+
+    if (var_idx == 0) {
+        return MonoGetExp(&p->arr[p->size - 1]); // zwracamy największą potęgę
+    }
+
+    poly_exp_t max = 0;
+
+    for (size_t i = 0; i < p->size; i++) {
+        poly_exp_t curr = MonoDegBy(&p->arr[i], var_idx);
+
+        if (curr > max) {
+            max = curr;
+        }
+    }
+
+    return max;
+}
+
+/**
+ * Mnoży dwa jednomiany.
+ * @param[in] m : jednomian @f$m@f$,
+ * @param[in] n : jednomian @f$n@f$,
+ * @return @f$m * n@f$.
+ */
+Mono MonoMul(const Mono *m, const Mono *n) {
+    return (Mono){.exp = m->exp + n->exp, .p = PolyMul(&m->p, &n->p)};
+}
+
+
+/**
+ * Mnoży dwa wielomiany stałe.
+ * @param[in] p : wielomian stały @f$p@f$,
+ * @param[in] q : wielomian stały @f$q@f$,
+ * @return @f$p * q@f$.
+ */
+Poly MultiplyCoeffs(const Poly *p, const Poly *q) {
+    assert(PolyIsCoeff(p) && PolyIsCoeff(q));
+    return PolyFromCoeff(p->coeff * q->coeff);
+}
+
+
+/**
+ * Mnoży dwa wielomiany niestałe - takie, które nie są współczynnikami.
+ * @param[in] p : wielomian niebędący współczynnikiem @f$p@f$,
+ * @param[in] q : wielomian niebędący współczynnikiem @f$q@f$,
+ * @return @f$p * q@f$.
+ */
+Poly MultiplyNonCoeffs(const Poly *p, const Poly *q) {
+    assert(!PolyIsCoeff(p) && !PolyIsCoeff(q));
+    size_t count = p->size * q->size;
+    Mono *monos = SafeMalloc(count * sizeof(Mono));
+    size_t monosIndex = 0;
+
+    for (size_t pIndex = 0; pIndex < p->size; pIndex++) {
+        for (size_t qIndex = 0; qIndex < q->size; qIndex++) {
+            monos[monosIndex] = MonoMul(&p->arr[pIndex], &q->arr[qIndex]);
+            monosIndex++;
+        }
+    }
+
+    Poly result = PolyAddMonos(count, monos);
+    free(monos);
+
+    return result;
+}
+
+/**
+ * Mnoży dwa wielomiany, pierwszym z nie jest wielomianem stałym, a drugi jest.
+ * @param[in] p : wielomian niebędący współczynnikiem @f$p@f$,
+ * @param[in] q : wielomian stały @f$q@f$,
+ * @return @f$p * q@f$.
+ */
+Poly MultiplyPolyByCoeff(const Poly *p, const Poly *q) {
+    assert(!PolyIsCoeff(p) && PolyIsCoeff(q));
+    if (PolyIsZero(q)) {
+        return PolyZero();
+    }
+    Mono constValue = MonoFromPoly(q, 0);
+
+    Poly newPoly = {.size = p->size, .arr = SafeMalloc(p->size * sizeof(Mono))};
+    size_t newPolyI = 0;
+
+    for (size_t polyI = 0; polyI < p->size; polyI++) {
+        Mono tmp = MonoMul(&p->arr[polyI], &constValue);
+        if (!MonoIsZero(&tmp)) { // overflow test od timy xd
+            newPoly.arr[newPolyI] = tmp;
+            newPolyI++;
+        }
+    }
+    // tutaj jakieś reduce ??
+    newPoly.size = newPolyI;
+
+    return newPoly;
+}
+
+/**
+ * Mnoży dwa dowolne wielomiany.
+ * @param[in] p : wielomian @f$p@f$,
+ * @param[in] q : wielomian @f$q@f$,
+ * @return @f$p * q@f$.
+ */
+Poly PolyMul(const Poly *p, const Poly *q) {
+    if (PolyIsCoeff(p) && PolyIsCoeff(q)) { // Obydwa są współczynnikami.
+        return MultiplyCoeffs(p, q);
+    }
+    if (!PolyIsCoeff(p) && !PolyIsCoeff(q)) { // Obydwa nie są współczynnikami.
+        return MultiplyNonCoeffs(p, q);
+    }
+    if (!PolyIsCoeff(p) && PolyIsCoeff(q)) { //Jeden jest współczynnikiem, a drugi nie.
+        return MultiplyPolyByCoeff(p, q);
+    } else {
+        return MultiplyPolyByCoeff(q, p);
+    }
+}
+
+/**
+ * Podnosi daną liczbę do potęgi.
+ * @param[in] x : podstawa @f$x@f$,
+ * @param[in] n : wykładnik @f$n@f$,
+ * @return @f$x ^ n@f$.
+ */
+poly_coeff_t RaiseToPower(poly_coeff_t x, poly_exp_t n) {
+    if (n == 0) {
+        return 1;
+    }
+
+    poly_coeff_t tmp = RaiseToPower(x, n / 2);
+
+    if (n % 2 == 0) {
+        return tmp * tmp;
+    } else {
+        return x * tmp * tmp;
+    }
+}
+
+/**
+ * Wylicza wartość wielomianu w punkcie @p x.
+ * Wstawia pod pierwszą zmienną wielomianu wartość @p x.
+ * W wyniku może powstać wielomian, jeśli współczynniki są wielomianami.
+ * Wtedy zmniejszane są o jeden indeksy zmiennych w takim wielomianie.
+ * Formalnie dla wielomianu @f$p(x_0, x_1, x_2, \ldots)@f$ wynikiem jest
+ * wielomian @f$p(x, x_0, x_1, \ldots)@f$.
+ * @param[in] p : wielomian @f$p@f$
+ * @param[in] x : wartość argumentu @f$x@f$
+ * @return @f$p(x, x_0, x_1, \ldots)@f$
+ */
+Poly PolyAt(const Poly *p, poly_coeff_t x) {
+    if (PolyIsCoeff(p)) {
+        return PolyFromCoeff(p->coeff * x);
+    }
+
+    Poly newPoly = PolyZero();
+
+    for (size_t i = 0; i < p->size; i++) {
+        Poly polyToPower = PolyFromCoeff(RaiseToPower(x, p->arr[i].exp));
+        Poly multiplyResult = PolyMul(&p->arr[i].p, &polyToPower);
+        PolyDestroy(&polyToPower);
+        Poly tmp = newPoly;
+        newPoly = PolyAdd(&newPoly, &multiplyResult);
+        PolyDestroy(&multiplyResult);
+        PolyDestroy(&tmp);
+    }
+
+    return newPoly;
 }
