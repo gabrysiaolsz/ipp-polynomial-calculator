@@ -1,3 +1,11 @@
+/** @file
+ * Interfejs wykonujący podstawowe działania na wielomianach rzadkich wielu zmiennych
+ *
+ * @author Gabriela Olszewska <go418326@students.mimuw.edu.pl>
+ * @copyright Uniwersytet Warszawski
+ * @date 04.2021
+ */
+
 #include "poly.h"
 #include "safe_memory_allocation.h"
 #include <stddef.h>
@@ -129,8 +137,10 @@ bool RecursiveMonoIsZero(Mono *mono) {
  * @param p : wielomian do sprawdzenia,
  * @return true - jeśli wielomian jest współczynnikiem, false w przeciwnym przypadku.
  */
-bool RecursivePolyIsCoeff(const Poly *p) {
+bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result) {
+    *result = 0;
     if (PolyIsCoeff(p)) {
+        *result = p->coeff;
         return true;
     }
     for (size_t i = 0; i < p->size; ++i) {
@@ -148,11 +158,10 @@ bool RecursivePolyIsCoeff(const Poly *p) {
         }
     }
 
-    return RecursivePolyIsCoeff(&p->arr[0].p);
+    return RecursivePolyIsCoeff(&p->arr[0].p, result);
 }
 
 Mono AddMonos(Mono *first, Mono *second);
-
 
 /**
  * Dodaje jednomiany z tablicy monos do siebie, tworząc nowy wielomian.
@@ -181,13 +190,18 @@ Poly AddMonosArray(size_t count, Mono *monos) {
             monosI++;
         }
 
-        if (MonoIsZero(&newPoly.arr[polyI])) {
-            MonoDestroy(&newPoly.arr[polyI]);
-        } else {
+        if (!MonoIsZero(&newPoly.arr[polyI])) {
             polyI++;
         }
     }
+
     newPoly.size = polyI;
+
+    if (newPoly.size == 0) {
+        PolyDestroy(&newPoly);
+        return PolyZero();
+    }
+
     return newPoly;
 }
 
@@ -199,20 +213,26 @@ Poly AddMonosArray(size_t count, Mono *monos) {
  * @return wielomian będący sumą jednomianów.
  */
 Poly PolyAddMonos(size_t count, const Mono monos[]) {
-    SortMonosByExp(count, (Mono *)monos);
+    Mono *newMonos = SafeMalloc(count * sizeof(Mono));
+    for(size_t i = 0; i < count; i++){
+        newMonos[i] = monos[i];
+    }
 
-    Poly newPoly = AddMonosArray(count, (Mono *)monos);
+    SortMonosByExp(count, newMonos);
+    Poly newPoly = AddMonosArray(count, newMonos);
 
-    if (RecursivePolyIsCoeff(&newPoly)) {
-        poly_coeff_t tmp = newPoly.arr[0].p.coeff; // TODO pomyśleć o tym
+    poly_coeff_t coeff;
+    if (RecursivePolyIsCoeff((&newPoly), &coeff)) {
+        poly_coeff_t tmp = coeff;
         PolyDestroy(&newPoly);
         newPoly.coeff = tmp;
         newPoly.arr = NULL;
     }
 
-    for (size_t j = 0; j < count; j++) { // Czyszczenie pamięci po tablicy monos.
-        MonoDestroy((Mono *)&monos[j]);
+    for (size_t j = 0; j < count; j++) { // Czyszczenie pamięci po tablicy newMonos.
+        MonoDestroy(&newMonos[j]);
     }
+    free(newMonos);
 
     return newPoly;
 }
@@ -441,7 +461,6 @@ Mono MonoMul(const Mono *m, const Mono *n) {
     return (Mono){.exp = m->exp + n->exp, .p = PolyMul(&m->p, &n->p)};
 }
 
-
 /**
  * Mnoży dwa wielomiany stałe.
  * @param[in] p : wielomian stały @f$p@f$,
@@ -452,7 +471,6 @@ Poly MultiplyCoeffs(const Poly *p, const Poly *q) {
     assert(PolyIsCoeff(p) && PolyIsCoeff(q));
     return PolyFromCoeff(p->coeff * q->coeff);
 }
-
 
 /**
  * Mnoży dwa wielomiany niestałe - takie, które nie są współczynnikami.
@@ -497,13 +515,17 @@ Poly MultiplyPolyByCoeff(const Poly *p, const Poly *q) {
 
     for (size_t polyI = 0; polyI < p->size; polyI++) {
         Mono tmp = MonoMul(&p->arr[polyI], &constValue);
-        if (!MonoIsZero(&tmp)) { // overflow test od timy xd
+        if (!MonoIsZero(&tmp)) {
             newPoly.arr[newPolyI] = tmp;
             newPolyI++;
         }
     }
-    // tutaj jakieś reduce ??
     newPoly.size = newPolyI;
+
+    if (newPoly.size == 0) {
+        PolyDestroy(&newPoly);
+        return PolyZero();
+    }
 
     return newPoly;
 }
@@ -521,7 +543,7 @@ Poly PolyMul(const Poly *p, const Poly *q) {
     if (!PolyIsCoeff(p) && !PolyIsCoeff(q)) { // Obydwa nie są współczynnikami.
         return MultiplyNonCoeffs(p, q);
     }
-    if (!PolyIsCoeff(p) && PolyIsCoeff(q)) { //Jeden jest współczynnikiem, a drugi nie.
+    if (!PolyIsCoeff(p) && PolyIsCoeff(q)) { // Jeden jest współczynnikiem, a drugi nie.
         return MultiplyPolyByCoeff(p, q);
     } else {
         return MultiplyPolyByCoeff(q, p);
