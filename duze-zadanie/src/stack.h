@@ -40,7 +40,7 @@ Stack *CreateStack(size_t capacity);
  * @param stack : stos,
  * @return wskaźnik na powiększony stos.
  */
-Stack *ResizeStack(Stack *stack);
+void ResizeStack(Stack *stack);
 
 /**
  * Sprawdza, czy stos jest pusty.
@@ -56,9 +56,7 @@ static inline bool IsEmpty(Stack *stack) {
  * @param stack : stos
  * @return true, jeśli stos jest pełny i false w przeciwnym przypadku.
  */
-static inline bool IsFull(Stack *stack) {
-    return stack->size == stack->capacity;
-}
+bool IsFull(Stack *stack);
 
 /**
  * Sprawdza rozmiar stosu.
@@ -75,7 +73,7 @@ static inline size_t StackSize(Stack *stack) {
  * @param stack : stos
  * @param p : wielomian do dodania
  */
-void Push(Stack *stack, const Poly *p);
+void Push(Stack *stack, Poly p);
 
 /**
  * Ściąga element z góry stosu.
