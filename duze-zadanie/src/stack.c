@@ -20,7 +20,6 @@ Stack *CreateStack() {
 
 void ResizeStack(Stack *stack) {
     size_t newCapacity = stack->capacity * 2;
-    // TODO sprawdzić czy nie było overflow
 
     stack->array = SafeRealloc(stack, newCapacity);
     stack->capacity = newCapacity;

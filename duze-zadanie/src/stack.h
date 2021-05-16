@@ -33,7 +33,7 @@ typedef struct Stack {
  * @param capacity : rozmiar stosu.
  * @return wskaźnik na stos.
  */
-Stack *CreateStack(size_t capacity);
+Stack *CreateStack();
 
 /**
  * Zwiększa rozmiar stosu.

@@ -11,5 +11,7 @@
 
 #include "poly.h"
 
+void ReadOneLineOfInput();
+
 
 #endif // POLYNOMIALS_CALC_H
