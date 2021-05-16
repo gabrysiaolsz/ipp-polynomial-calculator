@@ -220,4 +220,11 @@ bool PolyIsEq(const Poly *p, const Poly *q);
  */
 Poly PolyAt(const Poly *p, poly_coeff_t x);
 
+/**
+ * Rekurencyjnie i głęboko sprawdza czy jednomian jest zerowy.
+ * @param m : jednomian @f$m@f$.
+ * @return @f$m = 0@f$.
+ */
+bool RecursiveMonoIsZero(const Mono *m);
+
 #endif /* __POLY_H__ */

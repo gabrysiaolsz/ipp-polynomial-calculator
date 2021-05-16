@@ -97,12 +97,7 @@ static inline bool MonoIsZero(const Mono *m) {
     return PolyIsZero(&m->p);
 }
 
-/**
- * Rekurencyjnie i głęboko sprawdza czy jednomian jest zerowy.
- * @param m : jednomian @f$m@f$.
- * @return @f$m = 0@f$.
- */
-static inline bool RecursiveMonoIsZero(const Mono *m) {
+bool RecursiveMonoIsZero(const Mono *m) {
     if (PolyIsCoeff(&m->p)) {
         return PolyIsZero(&m->p);
     }
