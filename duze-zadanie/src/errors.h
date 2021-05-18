@@ -10,6 +10,7 @@
 #define POLYNOMIALS_ERRORS_H
 
 typedef enum{
+    NO_ERROR,
     VALID_POLY,
     VALID_ORDER,
     WRONG_POLY,

@@ -10,6 +10,7 @@
 #define POLYNOMIALS_CALC_H
 
 #include "poly.h"
+#include "errors.h"
 
 typedef enum {
     ZERO,
@@ -28,7 +29,7 @@ typedef enum {
     POP
 } Order;
 
-void ReadOneLineOfInput();
+inputValue_t ReadOneLineOfInput();
 
 
 #endif // POLYNOMIALS_CALC_H

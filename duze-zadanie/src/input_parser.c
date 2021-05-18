@@ -6,12 +6,14 @@
  * @date 05.2021
  */
 
+#include "calc.h"
+#include "errors.h"
+#include "safe_memory_allocation.h"
 #include <ctype.h>
 #include <errno.h>
-#include <stdio.h>
+#include <limits.h>
 #include <stdbool.h>
-#include "calc.h"
-#include "safe_memory_allocation.h"
+#include <stdio.h>
 
 void IgnoreLine() {
     int c = getchar();
@@ -20,136 +22,218 @@ void IgnoreLine() {
     }
 }
 
-unsigned long ReadUnsignedCoeff() {
-    unsigned long coeff = 0;
+inputValue_t ReadUnsignedCoeff(unsigned long *result) {
+    *result = 0;
+    unsigned long longOverflow = (unsigned)LONG_MAX + 1;
     int c = getchar();
+    if (!isdigit(c)) {
+        IgnoreLine();
+        return WRONG_POLY;
+    }
+
     while (isdigit(c)) {
-        coeff = (coeff * 10) + (c - '0');
+        *result = ((*result) * 10) + (c - '0');
+        if (*result > longOverflow) {
+            IgnoreLine();
+            return WRONG_POLY;
+        }
         c = getchar();
     }
-    ungetc(c, stdin);
-    return coeff;
-}
-
-poly_exp_t ReadExp() {
-    poly_exp_t exp = 0;
-    int c = getchar();
-    while (isdigit(c)) {
-        exp = (exp * 10) + (c - '0');
-        c = getchar();
+    if (c == EOF) {
+        return NO_ERROR;
     }
     ungetc(c, stdin);
-
-    return exp;
+    return NO_ERROR;
 }
 
-Mono ReadMono() {
+inputValue_t ReadExp(unsigned int *result) {
+    *result = 0;
+    int c = getchar();
+    while (isdigit(c)) {
+        *result = ((*result) * 10) + (c - '0');
+        if (*result > INT_MAX) {
+            IgnoreLine();
+            return WRONG_POLY;
+        }
+        c = getchar();
+    }
+    if (c == EOF) {
+        return ENCOUNTERED_EOF;
+    }
+    ungetc(c, stdin);
+    return NO_ERROR;
+}
+
+inputValue_t ReadConstPoly(Poly *result, bool isNegative);
+
+inputValue_t ReadMono(Mono *result) {
     Poly p;
-
     int c = getchar();
+    inputValue_t error;
     if (c == '(') {
-        Mono m = ReadMono();
-        p = (Poly){.arr = SafeMalloc(sizeof(Poly)), .size = 1};
-        p.arr[0] = m;
+        Mono m;
+        error = ReadMono(&m);
+        if (error != NO_ERROR) {
+            IgnoreLine();
+            return error;
+        }
+    }
+    else if (c == EOF) {
+        return WRONG_POLY;
+    } else if (c == '-') {
+        error = ReadConstPoly(&p, true);
+        if(error != NO_ERROR){
+            IgnoreLine();
+            return error;
+        }
     } else {
         ungetc(c, stdin);
-        poly_coeff_t coeff = ReadUnsignedCoeff();
-        p = PolyFromCoeff(coeff);
+        error = ReadConstPoly(&p, false);
+        if(error != NO_ERROR){
+            IgnoreLine();
+            return error;
+        }
     }
 
     c = getchar();
     if (c != ',') {
-        printf("niepoprawny format\n");
+        IgnoreLine();
+        return WRONG_POLY;
     }
 
-    poly_exp_t exp = ReadExp();
+    unsigned int exp;
+    error = ReadExp(&exp);
+    if (error != NO_ERROR) {
+        IgnoreLine();
+        return error;
+    }
+    if (exp < 0 || exp > INT_MAX) {
+        IgnoreLine();
+        return WRONG_POLY;
+    }
+
     c = getchar();
-    if (c == ')') {
-        printf("skończyliśmy :)\n");
-    } else {
-        printf("lol błąd\n");
+    if (c != ')') {
+        IgnoreLine();
+        return WRONG_POLY;
     }
 
-    Mono result = MonoFromPoly(&p, exp);
-    if (RecursiveMonoIsZero(&result)) {
-        MonoDestroy(&result);
+    *result = MonoFromPoly(&p, (int)exp);
+    if (RecursiveMonoIsZero(result)) {
+        MonoDestroy(result);
         PolyDestroy(&p);
-        return (Mono){.exp = exp, .p = PolyZero()};
+        *result = (Mono){.exp = (int)exp, .p = PolyZero()};
     }
 
-    return MonoFromPoly(&p, exp);
+    return NO_ERROR;
 }
 
-Poly ReadPoly() {
-    Poly p;
-    Mono m1 = ReadMono();
+inputValue_t ReadPoly(Poly *result) {
+    Mono m1, m2;
+    inputValue_t error = ReadMono(&m1);
+    if (error != NO_ERROR) {
+        IgnoreLine();
+        return error;
+    }
+
     int c = getchar();
     if (c == '+') {
-        printf("mamy wielomian z plusem!!!");
         getchar();
-        Mono m2 = ReadMono();
+        error = ReadMono(&m2);
+        if(error != NO_ERROR){
+            IgnoreLine();
+            return error;
+        }
         Mono *monos = SafeMalloc(2 * sizeof(Mono));
         monos[0] = m1;
         monos[1] = m2;
-        p = PolyAddMonos(2, monos);
+        *result = PolyAddMonos(2, monos);
     } else {
-        if (RecursiveMonoIsZero(&m1)) {
-            MonoDestroy(&m1);
-            return PolyZero();
+        if (PolyIsZero(&m1.p)) {
+            *result = PolyZero();
         }
-        p = (Poly){.arr = SafeMalloc(sizeof(Mono)), .size = 1};
-        p.arr[0] = m1;
+        *result = (Poly){.arr = SafeMalloc(sizeof(Mono)), .size = 1};
+        result->arr[0] = m1;
         MonoDestroy(&m1);
     }
 
-    return p;
+    return NO_ERROR;
 }
 
-Poly ReadConstPoly(bool isNegative) {
-    poly_coeff_t coeff = ReadUnsignedCoeff();
-    if (isNegative) {
-        return PolyFromCoeff(-1 * coeff);
-    } else {
-        return PolyFromCoeff(coeff);
+inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
+    unsigned long coeff;
+    inputValue_t error = ReadUnsignedCoeff(&coeff);
+    if(error != NO_ERROR){
+        return error;
     }
+    int c = getchar();
+    if (c != '\n' && c != EOF) {
+        IgnoreLine();
+        return WRONG_POLY;
+    }
+
+    if (isNegative) {
+        if(coeff - 1 > LONG_MAX){
+            IgnoreLine();
+            return WRONG_POLY;
+        }
+        *result = PolyFromCoeff(-1 * (long)coeff);
+    } else {
+        if(coeff > LONG_MAX){
+            IgnoreLine();
+            return WRONG_POLY;
+        }
+        *result = PolyFromCoeff((long)coeff);
+    }
+
+    return NO_ERROR;
 }
 
-void ReadOrder() {
+inputValue_t ReadOrder() {
     errno = 0;
     char word[30];
     scanf("%s", word);
     if (errno != 0) {
-        printf("niepoprawne dane\n");
+        IgnoreLine();
+        return WRONG_ORDER;
     } else {
         printf("wczytane słowo: %s\n", word);
+        return VALID_ORDER;
     }
 }
 
-void ReadOneLineOfInput() {
+inputValue_t ReadOneLineOfInput() {
+    inputValue_t error;
+    Poly p;
     int c = getchar();
     switch (c) {
         case '#':
             IgnoreLine();
-            break;
+            return LINE_IGNORED;
         case '(':
-            ReadPoly();
-            break;
+            error = ReadPoly(&p);
+            return error;
         case EOF:
-            printf("end of file\n");
-            return;
+            return ENCOUNTERED_EOF;
         case '\n':
-            printf("nowa linia\n");
-            return;
+            printf("nowa linia!!\n");
+            return LINE_IGNORED;
         default:
             if (isdigit(c)) {
-                ReadConstPoly(false);
+                ungetc(c, stdin);
+                error = ReadConstPoly(&p, false);
+                return error;
             } else if (c == '-') {
-                ReadConstPoly(true);
+                error = ReadConstPoly(&p, true);
+                return error;
             } else if (isalpha(c)) {
                 ungetc(c, stdin);
-                ReadOrder();
+                return ReadOrder();
             } else {
                 printf("nie pasuje\n");
+                return WRONG_POLY;
             }
     }
 }
+
+//TODO order

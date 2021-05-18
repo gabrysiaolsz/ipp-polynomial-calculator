@@ -8,7 +8,15 @@
 
 
 #include "input_parser.h"
+#include "errors.h"
+#include <stdio.h>
 
 int main() {
-    ReadOneLineOfInput();
+    inputValue_t error = ReadOneLineOfInput();
+    printf("error to %d\n", error);
+
+    while (error != ENCOUNTERED_EOF){
+        error = ReadOneLineOfInput();
+        printf("error to %d\n", error);
+    }
 }
