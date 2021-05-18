@@ -9,6 +9,7 @@
 #include "calc.h"
 #include "errors.h"
 #include "safe_memory_allocation.h"
+#include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -28,14 +29,14 @@ inputValue_t ReadUnsignedCoeff(unsigned long *result) {
     int c = getchar();
     if (!isdigit(c)) {
         IgnoreLine();
-        return WRONG_POLY;
+        return INVALID_VALUE;
     }
 
     while (isdigit(c)) {
         *result = ((*result) * 10) + (c - '0');
         if (*result > longOverflow) {
             IgnoreLine();
-            return WRONG_POLY;
+            return INVALID_VALUE;
         }
         c = getchar();
     }
@@ -53,7 +54,7 @@ inputValue_t ReadExp(unsigned int *result) {
         *result = ((*result) * 10) + (c - '0');
         if (*result > INT_MAX) {
             IgnoreLine();
-            return WRONG_POLY;
+            return INVALID_VALUE;
         }
         c = getchar();
     }
@@ -79,7 +80,7 @@ inputValue_t ReadMono(Mono *result) {
         }
     }
     else if (c == EOF) {
-        return WRONG_POLY;
+        return INVALID_VALUE;
     } else if (c == '-') {
         error = ReadConstPoly(&p, true);
         if(error != NO_ERROR){
@@ -98,7 +99,7 @@ inputValue_t ReadMono(Mono *result) {
     c = getchar();
     if (c != ',') {
         IgnoreLine();
-        return WRONG_POLY;
+        return INVALID_VALUE;
     }
 
     unsigned int exp;
@@ -109,13 +110,13 @@ inputValue_t ReadMono(Mono *result) {
     }
     if (exp < 0 || exp > INT_MAX) {
         IgnoreLine();
-        return WRONG_POLY;
+        return INVALID_VALUE;
     }
 
     c = getchar();
     if (c != ')') {
         IgnoreLine();
-        return WRONG_POLY;
+        return INVALID_VALUE;
     }
 
     *result = MonoFromPoly(&p, (int)exp);
@@ -169,19 +170,19 @@ inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
     int c = getchar();
     if (c != '\n' && c != EOF) {
         IgnoreLine();
-        return WRONG_POLY;
+        return INVALID_VALUE;
     }
 
     if (isNegative) {
         if(coeff - 1 > LONG_MAX){
             IgnoreLine();
-            return WRONG_POLY;
+            return INVALID_VALUE;
         }
         *result = PolyFromCoeff(-1 * (long)coeff);
     } else {
         if(coeff > LONG_MAX){
             IgnoreLine();
-            return WRONG_POLY;
+            return INVALID_VALUE;
         }
         *result = PolyFromCoeff((long)coeff);
     }
@@ -189,17 +190,51 @@ inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
     return NO_ERROR;
 }
 
-inputValue_t ReadOrder() {
+inputValue_t CheckCommand(char *word, Command *command){
+    if(strcmp(word, "DEB_BY") == 0){
+        *command = DEG_BY;
+        return NO_ERROR;
+    }
+    else if(strcmp(word, "AT") == 0){
+        *command = AT;
+        return NO_ERROR;
+    }
+    else{
+        return INVALID_VALUE;
+    }
+}
+
+inputValue_t ReadCommand() {
     errno = 0;
-    char word[30];
+    char word[10];
     scanf("%s", word);
     if (errno != 0) {
         IgnoreLine();
-        return WRONG_ORDER;
-    } else {
-        printf("wczytane słowo: %s\n", word);
-        return VALID_ORDER;
+        return INVALID_VALUE;
     }
+    else {
+        printf("wczytane słowo: %s\n", word);
+        int c = getchar();
+        if(c == ' '){
+            Command command;
+            inputValue_t error = CheckCommand(word, &command);
+            if(error == NO_ERROR && command == DEG_BY){
+                printf("Wczytaj wartość parametru polecenia deg by.");
+            }
+            else if(error == NO_ERROR && command == AT){
+                printf("Wczytaj wartość parametru polecenia at.");
+            }
+            else{
+                IgnoreLine();
+                return INVALID_VALUE;
+            }
+        }
+        if(c == '\n' || c == EOF){
+            return NO_ERROR;
+        }
+    }
+    IgnoreLine();
+    return INVALID_VALUE;
 }
 
 inputValue_t ReadOneLineOfInput() {
@@ -228,12 +263,10 @@ inputValue_t ReadOneLineOfInput() {
                 return error;
             } else if (isalpha(c)) {
                 ungetc(c, stdin);
-                return ReadOrder();
+                return ReadCommand();
             } else {
                 printf("nie pasuje\n");
-                return WRONG_POLY;
+                return INVALID_VALUE;
             }
     }
 }
-
-//TODO order

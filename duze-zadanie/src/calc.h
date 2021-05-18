@@ -27,7 +27,7 @@ typedef enum {
     AT,
     PRINT,
     POP
-} Order;
+} Command;
 
 inputValue_t ReadOneLineOfInput();
 

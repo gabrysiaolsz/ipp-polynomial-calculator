@@ -11,10 +11,7 @@
 
 typedef enum{
     NO_ERROR,
-    VALID_POLY,
-    VALID_ORDER,
-    WRONG_POLY,
-    WRONG_ORDER,
+    INVALID_VALUE,
     LINE_IGNORED,
     ENCOUNTERED_EOF,
     DEG_BY_ERROR,
