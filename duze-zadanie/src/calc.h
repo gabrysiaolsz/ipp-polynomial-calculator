@@ -27,6 +27,24 @@ typedef enum {
     AT,
     PRINT,
     POP
-} Command;
+} CommandName;
+
+typedef enum{
+    COMMAND,
+    POLY
+}lineType;
+
+typedef struct{
+    char *name;
+    union{
+        // te dwa typy lol
+    };
+}Command;
+
+union ParsedLine{
+    lineType line_t;
+    Command command;
+    Poly poly;
+};
 
 #endif // POLYNOMIALS_CALC_H

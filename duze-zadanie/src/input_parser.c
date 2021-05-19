@@ -79,6 +79,7 @@ error_t ReadMono(Mono *result) {
         error = ReadMono(&m);
         if (error != NO_ERROR) {
             IgnoreLine();
+            MonoDestroy(&m); //TODO chyba tego nie potrzebuje
             return error;
         }
     } else if (c == EOF) {
@@ -109,10 +110,6 @@ error_t ReadMono(Mono *result) {
     if (error != NO_ERROR) {
         return error;
     }
-    if (exp < 0 || exp > INT_MAX) {
-        IgnoreLine();
-        return INVALID_VALUE;
-    }
 
     c = getchar();
     if (c != ')') {
@@ -122,8 +119,7 @@ error_t ReadMono(Mono *result) {
 
     *result = MonoFromPoly(&p, (int)exp);
     if (RecursiveMonoIsZero(result)) {
-        MonoDestroy(result);
-        PolyDestroy(&p);
+        MonoDestroy(result); //TODO chyba tego nie potrzebuje
         *result = (Mono){.exp = (int)exp, .p = PolyZero()};
     }
 
@@ -145,7 +141,6 @@ Poly AddMonoToPoly(Poly *p, Mono *m){
     return PolyAdd(p, &tmpPoly);
 }
 
-//TODO czyszczenie przed wyjsciem z funkcji na errorze
 error_t ReadPoly(Poly *polyResult) {
     Mono tmpMono;
     error_t error = ReadMono(&tmpMono);
@@ -165,6 +160,7 @@ error_t ReadPoly(Poly *polyResult) {
     while (c == '+') {
         error = ReadMono(&tmpMono);
         if (error != NO_ERROR) {
+            PolyDestroy(polyResult);
             return error;
         }
         *polyResult = AddMonoToPoly(polyResult, &tmpMono);
@@ -176,6 +172,7 @@ error_t ReadPoly(Poly *polyResult) {
         return NO_ERROR;
     }
 
+    PolyDestroy(polyResult);
     return INVALID_VALUE;
 }
 
@@ -199,7 +196,7 @@ error_t ReadConstPoly(Poly *result, bool isNegative) {
     return NO_ERROR;
 }
 
-error_t CheckCommand(char *word, Command *command) {
+error_t CheckCommand(char *word, CommandName *command) {
     if (strcmp(word, "DEB_BY") == 0) {
         *command = DEG_BY;
         return NO_ERROR;
@@ -211,22 +208,21 @@ error_t CheckCommand(char *word, Command *command) {
     }
 }
 
-error_t ReadCommand() {
+error_t ReadCommand(Command *command) {
     errno = 0;
-    char word[10];
-    scanf("%s", word);
+    scanf("%s", command->name);
     if (errno != 0) {
         IgnoreLine();
         return INVALID_VALUE;
     } else {
-        printf("wczytane słowo: %s\n", word);
+        printf("wczytane słowo: %s\n", command->name);
         int c = getchar();
         if (c == ' ') {
-            Command command;
-            error_t error = CheckCommand(word, &command);
-            if (error == NO_ERROR && command == DEG_BY) {
+            CommandName commandName;
+            error_t error = CheckCommand(command->name, &commandName);
+            if (error == NO_ERROR && commandName == DEG_BY) {
                 printf("Wczytaj wartość parametru polecenia deg by.");
-            } else if (error == NO_ERROR && command == AT) {
+            } else if (error == NO_ERROR && commandName == AT) {
                 printf("Wczytaj wartość parametru polecenia at.");
             } else {
                 IgnoreLine();
@@ -241,7 +237,7 @@ error_t ReadCommand() {
     return INVALID_VALUE;
 }
 
-error_t ReadOneLineOfInput() {
+error_t ReadOneLineOfInput(union ParsedLine *line) {
     error_t error;
     Poly p;
     int c = getchar();
@@ -251,23 +247,32 @@ error_t ReadOneLineOfInput() {
             return LINE_IGNORED;
         case '(':
             error = ReadPoly(&p);
+            line->line_t = POLY;
+            line->poly = p;
             return error;
         case EOF:
             return ENCOUNTERED_EOF;
         case '\n':
-            printf("nowa linia!!\n");
             return LINE_IGNORED;
         default:
             if (isdigit(c)) {
                 ungetc(c, stdin);
                 error = ReadConstPoly(&p, false);
+                line->line_t = POLY;
+                line->poly = p;
                 return error;
             } else if (c == '-') {
                 error = ReadConstPoly(&p, true);
+                line->line_t = POLY;
+                line->poly = p;
                 return error;
             } else if (isalpha(c)) {
                 ungetc(c, stdin);
-                return ReadCommand();
+                Command command;
+                error =  ReadCommand(&command);
+                line->line_t = COMMAND;
+                line->command = command;
+                return error;
             } else {
                 return INVALID_VALUE;
             }

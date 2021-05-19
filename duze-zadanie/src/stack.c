@@ -8,7 +8,7 @@
 
 #include "stack.h"
 
-#define STARTING_CAPACITY 8
+#define STARTING_CAPACITY 16
 
 Stack *CreateStack() {
     Stack *stack = SafeMalloc(sizeof(Stack));
