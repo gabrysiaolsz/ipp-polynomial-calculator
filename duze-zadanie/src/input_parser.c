@@ -251,10 +251,10 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
 
 error_t CheckIfDegByOrAt(char *word, char *command) {
     if (strcmp(word, "DEB_BY") == 0) {
-        *command = DEG_BY;
+        *command = *word;
         return NO_ERROR;
     } else if (strcmp(word, "AT") == 0) {
-        *command = AT;
+        *command = *word;
         return NO_ERROR;
     } else {
         return INVALID_VALUE;

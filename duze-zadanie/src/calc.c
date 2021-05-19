@@ -24,7 +24,9 @@ void PrintZero() {
     fprintf(stdin, "0\n");
 }
 
-void PrintPoly(Poly p);
+void PrintPoly(Poly p){
+    ;
+}
 
 void ExecuteZero(Stack *stack) {
     Push(stack, PolyZero());
@@ -238,16 +240,16 @@ void ExecuteInput(Stack *stack) {
                 }
                 break;
             case INVALID_VALUE:
-                fprintf(stderr, "ERROR %d WRONG POLY", lineNumber);
+                fprintf(stderr, "ERROR %d WRONG POLY\n", lineNumber);
                 break;
             case LINE_IGNORED:
                 // printf("ignored line %d\n", lineNumber);
                 break;
             case DEG_BY_ERROR:
-                fprintf(stderr, "ERROR %d DEG BY WRONG VARIABLE", lineNumber);
+                fprintf(stderr, "ERROR %d DEG BY WRONG VARIABLE\n", lineNumber);
                 break;
             case AT_ERROR:
-                fprintf(stderr, "ERROR %d AT WRONG VALUE", lineNumber);
+                fprintf(stderr, "ERROR %d AT WRONG VALUE\n", lineNumber);
                 break;
             case ENCOUNTERED_EOF:
                 return;
