@@ -11,6 +11,6 @@
 
 #include "calc.h"
 
-error_t ReadOneLineOfInput();
+error_t ReadOneLineOfInput(union ParsedLine *line);
 
 #endif // POLYNOMIALS_INPUT_PARSER_H

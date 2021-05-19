@@ -16,11 +16,11 @@ void PrintStackUnderflow(unsigned int lineNumber) {
     fprintf(stderr, "ERROR %d STACK_UNDERFLOW", lineNumber);
 }
 
-void PrintOne(){
+void PrintOne() {
     fprintf(stdin, "1\n");
 }
 
-void PrintZero(){
+void PrintZero() {
     fprintf(stdin, "0\n");
 }
 
@@ -67,7 +67,7 @@ void ExecuteClone(Stack *stack, unsigned int lineNumber) {
     }
 }
 
-//TODO merge sub, add, mul
+// TODO merge sub, add, mul
 
 void ExecuteAdd(Stack *stack, unsigned int lineNumber) {
     size_t size = StackSize(stack);
@@ -121,24 +121,23 @@ void ExecuteSub(Stack *stack, unsigned int lineNumber) {
     }
 }
 
-void ExecuteIsEq(Stack *stack, unsigned int lineNumber){
+void ExecuteIsEq(Stack *stack, unsigned int lineNumber) {
     size_t size = StackSize(stack);
     if (size < 2) {
         PrintStackUnderflow(lineNumber);
-    }else{
+    } else {
         Poly first = Pop(stack);
         Poly second = Peek(stack);
-        if(PolyIsEq(&first, &second)){
+        if (PolyIsEq(&first, &second)) {
             PrintOne();
-        }
-        else{
+        } else {
             PrintZero();
         }
         Push(stack, first);
     }
 }
 
-void ExecuteDeg(Stack *stack, unsigned int lineNumber){
+void ExecuteDeg(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -148,7 +147,7 @@ void ExecuteDeg(Stack *stack, unsigned int lineNumber){
     }
 }
 
-void ExecuteDegBy(Stack *stack, unsigned long parameter, unsigned int lineNumber){
+void ExecuteDegBy(Stack *stack, size_t parameter, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -158,7 +157,7 @@ void ExecuteDegBy(Stack *stack, unsigned long parameter, unsigned int lineNumber
     }
 }
 
-void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber){
+void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -169,26 +168,23 @@ void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber){
     }
 }
 
-void ExecutePrint(Stack *stack, unsigned int lineNumber){
-    if(IsEmpty(stack)){
+void ExecutePrint(Stack *stack, unsigned int lineNumber) {
+    if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
-    }
-    else{
+    } else {
         Poly peekPoly = Peek(stack);
         PrintPoly(peekPoly);
     }
 }
 
-void ExecutePop(Stack *stack, unsigned int lineNumber){
-    if(IsEmpty(stack)){
+void ExecutePop(Stack *stack, unsigned int lineNumber) {
+    if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
-    }
-    else{
+    } else {
         Poly poly = Pop(stack);
         PolyDestroy(&poly);
     }
 }
-
 
 void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
     if (strcmp(command.name, "ZERO") == 0) {
@@ -219,6 +215,8 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
         ExecutePrint(stack, lineNumber);
     } else if (strcmp(command.name, "POP") == 0) {
         ExecutePop(stack, lineNumber);
+    } else {
+        fprintf(stderr, "ERROR %d WRONG COMMAND", lineNumber);
     }
 }
 
@@ -240,16 +238,16 @@ void ExecuteInput(Stack *stack) {
                 }
                 break;
             case INVALID_VALUE:
-                printf("invalid value on line %d\n", lineNumber);
+                fprintf(stderr, "ERROR %d WRONG POLY", lineNumber);
                 break;
             case LINE_IGNORED:
-                printf("ignored line %d\n", lineNumber);
+                // printf("ignored line %d\n", lineNumber);
                 break;
             case DEG_BY_ERROR:
-                printf("invalid deg_by command on line %d\n", lineNumber);
+                fprintf(stderr, "ERROR %d DEG BY WRONG VARIABLE", lineNumber);
                 break;
             case AT_ERROR:
-                printf("invalid at command on line %d\n", lineNumber);
+                fprintf(stderr, "ERROR %d AT WRONG VALUE", lineNumber);
                 break;
             case ENCOUNTERED_EOF:
                 return;

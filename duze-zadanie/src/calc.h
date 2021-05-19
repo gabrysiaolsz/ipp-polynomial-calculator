@@ -12,37 +12,34 @@
 #include "errors.h"
 #include "poly.h"
 
-typedef enum {
-    ZERO,
-    IS_COEFF,
-    IS_ZERO,
-    CLONE,
-    ADD,
-    MUL,
-    NEG,
-    SUB,
-    IS_EQ,
-    DEG,
-    DEG_BY,
-    AT,
-    PRINT,
-    POP
-} CommandName;
+// typedef enum {
+//     ZERO,
+//     IS_COEFF,
+//     IS_ZERO,
+//     CLONE,
+//     ADD,
+//     MUL,
+//     NEG,
+//     SUB,
+//     IS_EQ,
+//     DEG,
+//     DEG_BY,
+//     AT,
+//     PRINT,
+//     POP
+// } CommandName;
 
-typedef enum{
-    COMMAND,
-    POLY
-} lineCommandType;
+typedef enum { COMMAND, POLY } lineCommandType;
 
-typedef struct{
+typedef struct {
     char *name;
-    union{
-        unsigned long degByParameter;
+    union {
+        size_t degByParameter;
         poly_coeff_t atParameter;
     };
-}Command;
+} Command;
 
-union ParsedLine{
+union ParsedLine {
     lineCommandType lineType;
     Command command;
     Poly poly;
