@@ -23,7 +23,7 @@ void IgnoreLine() {
     }
 }
 
-inputValue_t ReadUnsignedCoeff(unsigned long *result) {
+error_t ReadUnsignedCoeff(unsigned long *result) {
     *result = 0;
     unsigned long longOverflow = (unsigned long)LONG_MAX + 1;
     int c = getchar();
@@ -40,6 +40,7 @@ inputValue_t ReadUnsignedCoeff(unsigned long *result) {
         }
         c = getchar();
     }
+
     if (c == EOF) {
         return NO_ERROR;
     }
@@ -47,7 +48,7 @@ inputValue_t ReadUnsignedCoeff(unsigned long *result) {
     return NO_ERROR;
 }
 
-inputValue_t ReadExp(unsigned int *result) {
+error_t ReadExp(unsigned int *result) {
     *result = 0;
     int c = getchar();
     while (isdigit(c)) {
@@ -58,6 +59,7 @@ inputValue_t ReadExp(unsigned int *result) {
         }
         c = getchar();
     }
+
     if (c == EOF) {
         return ENCOUNTERED_EOF;
     }
@@ -65,12 +67,13 @@ inputValue_t ReadExp(unsigned int *result) {
     return NO_ERROR;
 }
 
-inputValue_t ReadConstPoly(Poly *result, bool isNegative);
+error_t ReadConstPoly(Poly *result, bool isNegative);
 
-inputValue_t ReadMono(Mono *result) {
+error_t ReadMono(Mono *result) {
     Poly p;
     int c = getchar();
-    inputValue_t error;
+    error_t error;
+
     if (c == '(') {
         Mono m;
         error = ReadMono(&m);
@@ -79,7 +82,7 @@ inputValue_t ReadMono(Mono *result) {
             return error;
         }
     } else if (c == EOF) {
-        return INVALID_VALUE;
+        return ENCOUNTERED_EOF;
     } else if (c == '-') {
         error = ReadConstPoly(&p, true);
         if (error != NO_ERROR) {
@@ -104,7 +107,6 @@ inputValue_t ReadMono(Mono *result) {
     unsigned int exp;
     error = ReadExp(&exp);
     if (error != NO_ERROR) {
-        IgnoreLine();
         return error;
     }
     if (exp < 0 || exp > INT_MAX) {
@@ -128,55 +130,63 @@ inputValue_t ReadMono(Mono *result) {
     return NO_ERROR;
 }
 
-inputValue_t ReadPoly(Poly *result) {
-    Mono m1, m2;
-    inputValue_t error = ReadMono(&m1);
+Poly AddMonoToPoly(Poly *p, Mono *m){
+    if(PolyIsZero(&m->p)){
+        return *p;
+    }
+    if(PolyIsZero(p)){
+        Poly polyResult = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+        polyResult.arr[0] = *m;
+        return polyResult;
+    }
+
+    Poly tmpPoly = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+    tmpPoly.arr[0] = *m;
+    return PolyAdd(p, &tmpPoly);
+}
+
+//TODO czyszczenie przed wyjsciem z funkcji na errorze
+error_t ReadPoly(Poly *polyResult) {
+    Mono tmpMono;
+    error_t error = ReadMono(&tmpMono);
     if (error != NO_ERROR) {
-        IgnoreLine();
         return error;
+    }
+
+    if(PolyIsZero(&tmpMono.p)){
+        *polyResult = PolyZero();
+    }
+    else{
+        *polyResult = (Poly) {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+        polyResult->arr[0] = tmpMono;
     }
 
     int c = getchar();
-    if (c == '+') {
-        getchar();
-        error = ReadMono(&m2);
+    while (c == '+') {
+        error = ReadMono(&tmpMono);
         if (error != NO_ERROR) {
-            IgnoreLine();
             return error;
         }
-        Mono *monos = SafeMalloc(2 * sizeof(Mono));
-        monos[0] = m1;
-        monos[1] = m2;
-        *result = PolyAddMonos(2, monos);
-    } else {
-        if (PolyIsZero(&m1.p)) {
-            *result = PolyZero();
-        }
-        *result = (Poly){.arr = SafeMalloc(sizeof(Mono)), .size = 1};
-        result->arr[0] = m1;
-        MonoDestroy(&m1);
+        *polyResult = AddMonoToPoly(polyResult, &tmpMono);
+        c = getchar();
+
     }
 
-    return NO_ERROR;
+    if (c == '\n' || c == EOF) {
+        return NO_ERROR;
+    }
+
+    return INVALID_VALUE;
 }
 
-inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
+error_t ReadConstPoly(Poly *result, bool isNegative) {
     unsigned long coeff;
-    inputValue_t error = ReadUnsignedCoeff(&coeff);
+    error_t error = ReadUnsignedCoeff(&coeff);
     if (error != NO_ERROR) {
         return error;
     }
-    //    int c = getchar();
-    //    if (c != '\n' && c != EOF) {
-    //        IgnoreLine();
-    //        return INVALID_VALUE;
-    //    }
 
     if (isNegative) {
-        if (coeff - 1 > LONG_MAX) {
-            IgnoreLine();
-            return INVALID_VALUE;
-        }
         *result = PolyFromCoeff(-1 * (long)coeff);
     } else {
         if (coeff > LONG_MAX) {
@@ -189,7 +199,7 @@ inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
     return NO_ERROR;
 }
 
-inputValue_t CheckCommand(char *word, Command *command) {
+error_t CheckCommand(char *word, Command *command) {
     if (strcmp(word, "DEB_BY") == 0) {
         *command = DEG_BY;
         return NO_ERROR;
@@ -201,7 +211,7 @@ inputValue_t CheckCommand(char *word, Command *command) {
     }
 }
 
-inputValue_t ReadCommand() {
+error_t ReadCommand() {
     errno = 0;
     char word[10];
     scanf("%s", word);
@@ -213,7 +223,7 @@ inputValue_t ReadCommand() {
         int c = getchar();
         if (c == ' ') {
             Command command;
-            inputValue_t error = CheckCommand(word, &command);
+            error_t error = CheckCommand(word, &command);
             if (error == NO_ERROR && command == DEG_BY) {
                 printf("Wczytaj wartość parametru polecenia deg by.");
             } else if (error == NO_ERROR && command == AT) {
@@ -231,8 +241,8 @@ inputValue_t ReadCommand() {
     return INVALID_VALUE;
 }
 
-inputValue_t ReadOneLineOfInput() {
-    inputValue_t error;
+error_t ReadOneLineOfInput() {
+    error_t error;
     Poly p;
     int c = getchar();
     switch (c) {

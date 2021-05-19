@@ -6,16 +6,15 @@
  * @date 05.2021
  */
 
-
-#include "input_parser.h"
 #include "errors.h"
+#include "input_parser.h"
 #include <stdio.h>
 
 int main() {
-    inputValue_t error = ReadOneLineOfInput();
+    error_t error = ReadOneLineOfInput();
     printf("error to %d\n", error);
 
-    while (error != ENCOUNTERED_EOF){
+    while (error != ENCOUNTERED_EOF) {
         error = ReadOneLineOfInput();
         printf("error to %d\n", error);
     }

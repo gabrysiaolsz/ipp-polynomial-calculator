@@ -9,13 +9,13 @@
 #ifndef POLYNOMIALS_ERRORS_H
 #define POLYNOMIALS_ERRORS_H
 
-typedef enum{
+typedef enum {
     NO_ERROR,
     INVALID_VALUE,
     LINE_IGNORED,
     ENCOUNTERED_EOF,
     DEG_BY_ERROR,
     AT_ERROR,
-}inputValue_t;
+} error_t;
 
 #endif // POLYNOMIALS_ERRORS_H

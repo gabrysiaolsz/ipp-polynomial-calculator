@@ -9,8 +9,8 @@
 #ifndef POLYNOMIALS_CALC_H
 #define POLYNOMIALS_CALC_H
 
-#include "poly.h"
 #include "errors.h"
+#include "poly.h"
 
 typedef enum {
     ZERO,
@@ -28,8 +28,5 @@ typedef enum {
     PRINT,
     POP
 } Command;
-
-inputValue_t ReadOneLineOfInput();
-
 
 #endif // POLYNOMIALS_CALC_H
