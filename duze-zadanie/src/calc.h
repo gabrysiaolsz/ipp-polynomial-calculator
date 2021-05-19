@@ -12,23 +12,6 @@
 #include "errors.h"
 #include "poly.h"
 
-// typedef enum {
-//     ZERO,
-//     IS_COEFF,
-//     IS_ZERO,
-//     CLONE,
-//     ADD,
-//     MUL,
-//     NEG,
-//     SUB,
-//     IS_EQ,
-//     DEG,
-//     DEG_BY,
-//     AT,
-//     PRINT,
-//     POP
-// } CommandName;
-
 typedef enum { COMMAND, POLY } lineCommandType;
 
 typedef struct {

@@ -249,7 +249,7 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
     return NO_ERROR;
 }
 
-error_t CheckCommand(char *word, CommandName *command) {
+error_t CheckIfDegByOrAt(char *word, char *command) {
     if (strcmp(word, "DEB_BY") == 0) {
         *command = DEG_BY;
         return NO_ERROR;
@@ -271,11 +271,11 @@ error_t ReadCommand(Command *command) {
         printf("wczytane słowo: %s\n", command->name);
         int c = getchar();
         if (c == ' ') {
-            CommandName commandName;
-            error_t error = CheckCommand(command->name, &commandName);
-            if (error == NO_ERROR && commandName == DEG_BY) {
+            char commandName[10];
+            error_t error = CheckIfDegByOrAt(command->name, commandName);
+            if (error == NO_ERROR && strcmp(commandName, "DEG_BY") == 0) {
                 return ReadDegByParameter(&command->degByParameter);
-            } else if (error == NO_ERROR && commandName == AT) {
+            } else if (error == NO_ERROR && strcmp(commandName, "AT") == 0) {
                 return ReadAtParameter(&command->atParameter);
             } else {
                 IgnoreLine();
