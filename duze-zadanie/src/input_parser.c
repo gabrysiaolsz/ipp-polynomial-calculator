@@ -247,7 +247,7 @@ error_t ReadOneLineOfInput(union ParsedLine *line) {
             return LINE_IGNORED;
         case '(':
             error = ReadPoly(&p);
-            line->line_t = POLY;
+            line->lineType = POLY;
             line->poly = p;
             return error;
         case EOF:
@@ -258,19 +258,19 @@ error_t ReadOneLineOfInput(union ParsedLine *line) {
             if (isdigit(c)) {
                 ungetc(c, stdin);
                 error = ReadConstPoly(&p, false);
-                line->line_t = POLY;
+                line->lineType = POLY;
                 line->poly = p;
                 return error;
             } else if (c == '-') {
                 error = ReadConstPoly(&p, true);
-                line->line_t = POLY;
+                line->lineType = POLY;
                 line->poly = p;
                 return error;
             } else if (isalpha(c)) {
                 ungetc(c, stdin);
                 Command command;
                 error =  ReadCommand(&command);
-                line->line_t = COMMAND;
+                line->lineType = COMMAND;
                 line->command = command;
                 return error;
             } else {

@@ -32,17 +32,18 @@ typedef enum {
 typedef enum{
     COMMAND,
     POLY
-}lineType;
+} lineCommandType;
 
 typedef struct{
     char *name;
     union{
-        // te dwa typy lol
+        unsigned long degByParameter;
+        poly_coeff_t atParameter;
     };
 }Command;
 
 union ParsedLine{
-    lineType line_t;
+    lineCommandType lineType;
     Command command;
     Poly poly;
 };

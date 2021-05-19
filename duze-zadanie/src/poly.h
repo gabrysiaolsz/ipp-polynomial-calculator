@@ -53,7 +53,7 @@ typedef struct Mono {
 } Mono;
 
 /**
- * Daje wartość wykładnika jendomianu.
+ * Daje wartość wykładnika jednomianu.
  * @param m : jednomian
  * @return wartość wykładnika jednomianu
  */
