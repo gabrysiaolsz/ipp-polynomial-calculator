@@ -9,12 +9,12 @@
 #include "calc.h"
 #include "errors.h"
 #include "safe_memory_allocation.h"
-#include <string.h>
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 void IgnoreLine() {
     int c = getchar();
@@ -25,7 +25,7 @@ void IgnoreLine() {
 
 inputValue_t ReadUnsignedCoeff(unsigned long *result) {
     *result = 0;
-    unsigned long longOverflow = (unsigned)LONG_MAX + 1;
+    unsigned long longOverflow = (unsigned long)LONG_MAX + 1;
     int c = getchar();
     if (!isdigit(c)) {
         IgnoreLine();
@@ -78,19 +78,18 @@ inputValue_t ReadMono(Mono *result) {
             IgnoreLine();
             return error;
         }
-    }
-    else if (c == EOF) {
+    } else if (c == EOF) {
         return INVALID_VALUE;
     } else if (c == '-') {
         error = ReadConstPoly(&p, true);
-        if(error != NO_ERROR){
+        if (error != NO_ERROR) {
             IgnoreLine();
             return error;
         }
     } else {
         ungetc(c, stdin);
         error = ReadConstPoly(&p, false);
-        if(error != NO_ERROR){
+        if (error != NO_ERROR) {
             IgnoreLine();
             return error;
         }
@@ -141,7 +140,7 @@ inputValue_t ReadPoly(Poly *result) {
     if (c == '+') {
         getchar();
         error = ReadMono(&m2);
-        if(error != NO_ERROR){
+        if (error != NO_ERROR) {
             IgnoreLine();
             return error;
         }
@@ -164,23 +163,23 @@ inputValue_t ReadPoly(Poly *result) {
 inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
     unsigned long coeff;
     inputValue_t error = ReadUnsignedCoeff(&coeff);
-    if(error != NO_ERROR){
+    if (error != NO_ERROR) {
         return error;
     }
-    int c = getchar();
-    if (c != '\n' && c != EOF) {
-        IgnoreLine();
-        return INVALID_VALUE;
-    }
+    //    int c = getchar();
+    //    if (c != '\n' && c != EOF) {
+    //        IgnoreLine();
+    //        return INVALID_VALUE;
+    //    }
 
     if (isNegative) {
-        if(coeff - 1 > LONG_MAX){
+        if (coeff - 1 > LONG_MAX) {
             IgnoreLine();
             return INVALID_VALUE;
         }
         *result = PolyFromCoeff(-1 * (long)coeff);
     } else {
-        if(coeff > LONG_MAX){
+        if (coeff > LONG_MAX) {
             IgnoreLine();
             return INVALID_VALUE;
         }
@@ -190,16 +189,14 @@ inputValue_t ReadConstPoly(Poly *result, bool isNegative) {
     return NO_ERROR;
 }
 
-inputValue_t CheckCommand(char *word, Command *command){
-    if(strcmp(word, "DEB_BY") == 0){
+inputValue_t CheckCommand(char *word, Command *command) {
+    if (strcmp(word, "DEB_BY") == 0) {
         *command = DEG_BY;
         return NO_ERROR;
-    }
-    else if(strcmp(word, "AT") == 0){
+    } else if (strcmp(word, "AT") == 0) {
         *command = AT;
         return NO_ERROR;
-    }
-    else{
+    } else {
         return INVALID_VALUE;
     }
 }
@@ -211,25 +208,22 @@ inputValue_t ReadCommand() {
     if (errno != 0) {
         IgnoreLine();
         return INVALID_VALUE;
-    }
-    else {
+    } else {
         printf("wczytane słowo: %s\n", word);
         int c = getchar();
-        if(c == ' '){
+        if (c == ' ') {
             Command command;
             inputValue_t error = CheckCommand(word, &command);
-            if(error == NO_ERROR && command == DEG_BY){
+            if (error == NO_ERROR && command == DEG_BY) {
                 printf("Wczytaj wartość parametru polecenia deg by.");
-            }
-            else if(error == NO_ERROR && command == AT){
+            } else if (error == NO_ERROR && command == AT) {
                 printf("Wczytaj wartość parametru polecenia at.");
-            }
-            else{
+            } else {
                 IgnoreLine();
                 return INVALID_VALUE;
             }
         }
-        if(c == '\n' || c == EOF){
+        if (c == '\n' || c == EOF) {
             return NO_ERROR;
         }
     }
@@ -265,7 +259,6 @@ inputValue_t ReadOneLineOfInput() {
                 ungetc(c, stdin);
                 return ReadCommand();
             } else {
-                printf("nie pasuje\n");
                 return INVALID_VALUE;
             }
     }
