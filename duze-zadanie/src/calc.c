@@ -249,7 +249,7 @@ void ExecuteInput(Stack *stack) {
                 fprintf(stderr, "ERROR %d DEG BY WRONG VARIABLE\n", lineNumber);
                 break;
             case AT_ERROR:
-                fprintf(stderr, "ERROR %d AT WRONG VALUE\n", lineNumber);
+                fprintf(stderr, "ERROR %d AT WRONG VALUE\n ", lineNumber);
                 break;
             case ENCOUNTERED_EOF:
                 return;

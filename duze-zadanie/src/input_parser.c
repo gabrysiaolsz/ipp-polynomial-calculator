@@ -34,7 +34,7 @@ error_t ReadUnsignedCoeff(unsigned long *result) {
     }
 
     while (isdigit(c)) {
-        *result = ((*result) * 10) + (c - '0');
+        *result = ((*result) * 10) + (unsigned)(c - '0');
         if (*result > longOverflow) {
             IgnoreLine();
             return INVALID_VALUE;
@@ -53,7 +53,7 @@ error_t ReadExp(unsigned int *result) {
     *result = 0;
     int c = getchar();
     while (isdigit(c)) {
-        *result = ((*result) * 10) + (c - '0');
+        *result = ((*result) * 10) + (unsigned)(c - '0');
         if (*result > INT_MAX) {
             IgnoreLine();
             return INVALID_VALUE;
@@ -205,7 +205,7 @@ error_t ReadDegByParameter(size_t *parameter) {
     }
 
     while (isdigit(c)) {
-        *parameter = ((*parameter) * 10) + (c - '0');
+        *parameter = ((*parameter) * 10) + (unsigned)(c - '0');
         if (*parameter > overflow) {
             IgnoreLine();
             return DEG_BY_ERROR;
