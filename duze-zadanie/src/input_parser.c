@@ -269,7 +269,6 @@ error_t ReadCommand(Command *command) {
         IgnoreLine(0);
         return INVALID_VALUE;
     } else {
-        printf("wczytane słowo: %s\n", command->name);
         int c = getchar();
         if (c == ' ') {
             char commandName[10];
