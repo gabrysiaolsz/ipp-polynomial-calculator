@@ -80,7 +80,6 @@ error_t ReadMono(Mono *result) {
         error = ReadMono(&m);
         if (error != NO_ERROR) {
             IgnoreLine();
-            MonoDestroy(&m); // TODO chyba tego nie potrzebuje
             return error;
         }
     } else if (c == EOF) {
@@ -120,7 +119,6 @@ error_t ReadMono(Mono *result) {
 
     *result = MonoFromPoly(&p, (int)exp);
     if (RecursiveMonoIsZero(result)) {
-        MonoDestroy(result); // TODO chyba tego nie potrzebuje
         *result = (Mono){.exp = (int)exp, .p = PolyZero()};
     }
 
