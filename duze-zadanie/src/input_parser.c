@@ -17,8 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void IgnoreLine() {
-    int c = getchar();
+void IgnoreLine(int c) {
     while (c != '\n' && c != EOF) {
         c = getchar();
     }
@@ -29,14 +28,14 @@ error_t ReadUnsignedCoeff(unsigned long *result) {
     unsigned long longOverflow = (unsigned long)LONG_MAX + 1;
     int c = getchar();
     if (!isdigit(c)) {
-        IgnoreLine();
+        IgnoreLine(c);
         return INVALID_VALUE;
     }
 
     while (isdigit(c)) {
         *result = ((*result) * 10) + (unsigned)(c - '0');
         if (*result > longOverflow) {
-            IgnoreLine();
+            IgnoreLine(c);
             return INVALID_VALUE;
         }
         c = getchar();
@@ -55,7 +54,7 @@ error_t ReadExp(unsigned int *result) {
     while (isdigit(c)) {
         *result = ((*result) * 10) + (unsigned)(c - '0');
         if (*result > INT_MAX) {
-            IgnoreLine();
+            IgnoreLine(c);
             return INVALID_VALUE;
         }
         c = getchar();
@@ -79,7 +78,6 @@ error_t ReadMono(Mono *result) {
         Mono m;
         error = ReadMono(&m);
         if (error != NO_ERROR) {
-            IgnoreLine();
             return error;
         }
     } else if (c == EOF) {
@@ -87,21 +85,19 @@ error_t ReadMono(Mono *result) {
     } else if (c == '-') {
         error = ReadConstPoly(&p, true);
         if (error != NO_ERROR) {
-            IgnoreLine();
             return error;
         }
     } else {
         ungetc(c, stdin);
         error = ReadConstPoly(&p, false);
         if (error != NO_ERROR) {
-            IgnoreLine();
             return error;
         }
     }
 
     c = getchar();
     if (c != ',') {
-        IgnoreLine();
+        IgnoreLine(c);
         return INVALID_VALUE;
     }
 
@@ -113,7 +109,7 @@ error_t ReadMono(Mono *result) {
 
     c = getchar();
     if (c != ')') {
-        IgnoreLine();
+        IgnoreLine(c);
         return INVALID_VALUE;
     }
 
@@ -165,12 +161,13 @@ error_t ReadPoly(Poly *polyResult) {
         c = getchar();
     }
 
-    if (c == '\n' || c == EOF) {
-        return NO_ERROR;
+    if (c != '\n' && c != EOF) {
+        PolyDestroy(polyResult);
+        IgnoreLine(c);
+        return INVALID_VALUE;
     }
 
-    PolyDestroy(polyResult);
-    return INVALID_VALUE;
+    return NO_ERROR;
 }
 
 error_t ReadConstPoly(Poly *result, bool isNegative) {
@@ -180,11 +177,17 @@ error_t ReadConstPoly(Poly *result, bool isNegative) {
         return error;
     }
 
+    int c = getchar();
+    if(c != '\n' && c != EOF){
+        IgnoreLine(c);
+        return INVALID_VALUE;
+    }
+
     if (isNegative) {
         *result = PolyFromCoeff(-1 * (long)coeff);
     } else {
         if (coeff > LONG_MAX) {
-            IgnoreLine();
+            IgnoreLine(c);
             return INVALID_VALUE;
         }
         *result = PolyFromCoeff((long)coeff);
@@ -198,14 +201,14 @@ error_t ReadDegByParameter(size_t *parameter) {
     size_t overflow = SIZE_MAX;
     int c = getchar();
     if (!isdigit(c)) {
-        IgnoreLine();
+        IgnoreLine(c);
         return DEG_BY_ERROR;
     }
 
     while (isdigit(c)) {
         *parameter = ((*parameter) * 10) + (unsigned)(c - '0');
         if (*parameter > overflow) {
-            IgnoreLine();
+            IgnoreLine(c);
             return DEG_BY_ERROR;
         }
         c = getchar();
@@ -227,14 +230,14 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
         c = getchar();
     }
     if (!isdigit(c)) {
-        IgnoreLine();
+        IgnoreLine(c);
         return AT_ERROR;
     }
 
     while (isdigit(c)) {
         *parameter = ((*parameter) * 10) + (c - '0');
         if (*parameter > LONG_MAX || *parameter < LONG_MIN) {
-            IgnoreLine();
+            IgnoreLine(c);
             return AT_ERROR;
         }
         c = getchar();
@@ -263,7 +266,7 @@ error_t ReadCommand(Command *command) {
     errno = 0;
     scanf("%s", command->name);
     if (errno != 0) {
-        IgnoreLine();
+        IgnoreLine(0);
         return INVALID_VALUE;
     } else {
         printf("wczytane słowo: %s\n", command->name);
@@ -276,7 +279,7 @@ error_t ReadCommand(Command *command) {
             } else if (error == NO_ERROR && strcmp(commandName, "AT") == 0) {
                 return ReadAtParameter(&command->atParameter);
             } else {
-                IgnoreLine();
+                IgnoreLine(c);
                 return INVALID_VALUE;
             }
         }
@@ -284,7 +287,7 @@ error_t ReadCommand(Command *command) {
             return NO_ERROR;
         }
     }
-    IgnoreLine();
+    IgnoreLine(0);
     return INVALID_VALUE;
 }
 
@@ -294,7 +297,7 @@ error_t ReadOneLineOfInput(union ParsedLine *line) {
     int c = getchar();
     switch (c) {
         case '#':
-            IgnoreLine();
+            IgnoreLine(c);
             return LINE_IGNORED;
         case '(':
             error = ReadPoly(&p);
@@ -325,6 +328,7 @@ error_t ReadOneLineOfInput(union ParsedLine *line) {
                 line->command = command;
                 return error;
             } else {
+                IgnoreLine(c);
                 return INVALID_VALUE;
             }
     }

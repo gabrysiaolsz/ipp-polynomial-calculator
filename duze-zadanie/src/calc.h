@@ -12,7 +12,7 @@
 #include "errors.h"
 #include "poly.h"
 
-typedef enum { COMMAND, POLY } lineCommandType;
+typedef enum { COMMAND, POLY } LineCommandType;
 
 typedef struct {
     char *name;
@@ -23,7 +23,7 @@ typedef struct {
 } Command;
 
 union ParsedLine {
-    lineCommandType lineType;
+    LineCommandType lineType;
     Command command;
     Poly poly;
 };

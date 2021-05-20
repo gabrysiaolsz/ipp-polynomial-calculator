@@ -243,7 +243,6 @@ void ExecuteInput(Stack *stack) {
                 fprintf(stderr, "ERROR %d WRONG POLY\n", lineNumber);
                 break;
             case LINE_IGNORED:
-                // printf("ignored line %d\n", lineNumber);
                 break;
             case DEG_BY_ERROR:
                 fprintf(stderr, "ERROR %d DEG BY WRONG VARIABLE\n", lineNumber);
