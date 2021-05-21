@@ -13,7 +13,7 @@
 #include <string.h>
 
 void PrintStackUnderflow(unsigned int lineNumber) {
-    fprintf(stderr, "ERROR %d STACK_UNDERFLOW", lineNumber);
+    fprintf(stderr, "ERROR %d STACK UNDERFLOW\n", lineNumber);
 }
 
 void PrintOne() {
@@ -24,8 +24,8 @@ void PrintZero() {
     fprintf(stdin, "0\n");
 }
 
-void PrintPoly(Poly p){
-    ;
+void PrintPoly(Poly p) {
+    printf("tutaj powinnam wypisać wielomian\n");
 }
 
 void ExecuteZero(Stack *stack) {
@@ -209,7 +209,7 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
         ExecuteIsEq(stack, lineNumber);
     } else if (strcmp(command.name, "DEG") == 0) {
         ExecuteDeg(stack, lineNumber);
-    } else if (strcmp(command.name, "DEB_BY") == 0) {
+    } else if (strcmp(command.name, "DEG_BY") == 0) {
         ExecuteDegBy(stack, command.degByParameter, lineNumber);
     } else if (strcmp(command.name, "AT") == 0) {
         ExecuteAt(stack, command.atParameter, lineNumber);
@@ -218,7 +218,7 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
     } else if (strcmp(command.name, "POP") == 0) {
         ExecutePop(stack, lineNumber);
     } else {
-        fprintf(stderr, "ERROR %d WRONG COMMAND", lineNumber);
+        fprintf(stderr, "ERROR %d WRONG COMMAND\n", lineNumber);
     }
 }
 
@@ -228,19 +228,24 @@ void PushPoly(Stack *stack, Poly p) {
 
 void ExecuteInput(Stack *stack) {
     unsigned int lineNumber = 1;
-    union ParsedLine line;
+    ParsedLine line;
     while (true) {
         error_t error = ReadOneLineOfInput(&line);
         switch (error) {
             case NO_ERROR:
-                if (line.lineType == POLY) {
+                if (line.isPoly) {
                     PushPoly(stack, line.poly);
-                } else if (line.lineType == COMMAND) {
+                } else {
                     ExecuteCommand(stack, line.command, lineNumber);
                 }
                 break;
             case INVALID_VALUE:
-                fprintf(stderr, "ERROR %d WRONG POLY\n", lineNumber);
+                if(line.isPoly){
+                    fprintf(stderr, "ERROR %d WRONG POLY\n", lineNumber);
+                }
+                else{
+                    fprintf(stderr, "ERROR %d WRONG COMMAND\n", lineNumber);
+                }
                 break;
             case LINE_IGNORED:
                 break;
@@ -248,7 +253,7 @@ void ExecuteInput(Stack *stack) {
                 fprintf(stderr, "ERROR %d DEG BY WRONG VARIABLE\n", lineNumber);
                 break;
             case AT_ERROR:
-                fprintf(stderr, "ERROR %d AT WRONG VALUE\n ", lineNumber);
+                fprintf(stderr, "ERROR %d AT WRONG VALUE\n", lineNumber);
                 break;
             case ENCOUNTERED_EOF:
                 return;

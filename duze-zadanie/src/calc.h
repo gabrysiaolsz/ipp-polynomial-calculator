@@ -12,20 +12,20 @@
 #include "errors.h"
 #include "poly.h"
 
-typedef enum { COMMAND, POLY } LineCommandType;
+// typedef enum { COMMAND, POLY } LineCommandType;
 
 typedef struct {
-    char *name;
+    char name[10];
     union {
         size_t degByParameter;
         poly_coeff_t atParameter;
     };
 } Command;
 
-union ParsedLine {
-    LineCommandType lineType;
+typedef struct {
+    bool isPoly;
     Command command;
     Poly poly;
-};
+} ParsedLine;
 
 #endif // POLYNOMIALS_CALC_H
