@@ -68,7 +68,7 @@ error_t ReadExp(unsigned int *result) {
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono);
 
 error_t ReadMono(Mono *result) {
-    Poly p;
+    Poly p = PolyZero();
     Mono m;
     int c = getchar();
     error_t error;
