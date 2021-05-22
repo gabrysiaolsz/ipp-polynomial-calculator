@@ -66,6 +66,7 @@ error_t ReadExp(unsigned int *result) {
 }
 
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono);
+Poly AddMonoToPoly(Poly *p, Mono *m);
 
 error_t ReadMono(Mono *result) {
     Poly p = PolyZero();
@@ -74,11 +75,11 @@ error_t ReadMono(Mono *result) {
     error_t error;
 
     if (c == '(') {
-        error = ReadMono(&m);
+        error = ReadMono(&m); // TODO read poly
         if (error != NO_ERROR) {
             return error;
         }
-        p = (Poly) {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+        p = (Poly){.size = 1, .arr = SafeMalloc(sizeof(Mono))};
         p.arr[0] = m;
     } else if (c == EOF) {
         return ENCOUNTERED_EOF;
@@ -158,7 +159,7 @@ error_t ReadPoly(Poly *polyResult) {
     int c = getchar();
     while (c == '+') {
         c = getchar();
-        if(c == '('){
+        if (c == '(') {
             error = ReadMono(&tmpMono);
             if (error != NO_ERROR) {
                 PolyDestroy(polyResult);
@@ -166,8 +167,7 @@ error_t ReadPoly(Poly *polyResult) {
             }
             *polyResult = AddMonoToPoly(polyResult, &tmpMono);
             c = getchar();
-        }
-        else{
+        } else {
             IgnoreLine(c);
             PolyDestroy(polyResult);
             return INVALID_VALUE;
@@ -191,19 +191,18 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono) {
     }
 
     int c = getchar();
-    if(!isMono && c != '\n' && c!= EOF){
+    if (!isMono && c != '\n' && c != EOF) {
         IgnoreLine(c);
         return INVALID_VALUE;
     }
-    if(isMono && c != '\n' && c != EOF && c != ','){
+    if (isMono && c != '\n' && c != EOF && c != ',') {
         IgnoreLine(c);
         return INVALID_VALUE;
     }
-    if(c == ','){
+    if (c == ',') {
         ungetc(c, stdin);
     }
 
-    
     if (isNegative) {
         *result = PolyFromCoeff(-1 * (long)coeff);
     } else {
@@ -260,8 +259,8 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
 
     while (isdigit(c)) {
         tmp = (tmp * 10) + (c - '0');
-        if(tmp > LONG_MAX) {
-            if(tmp == (unsigned)LONG_MAX + 1 && isNegative){
+        if (tmp > LONG_MAX) {
+            if (tmp == (unsigned)LONG_MAX + 1 && isNegative) {
                 *parameter = -1 * (signed)tmp;
                 return NO_ERROR;
             }
@@ -275,47 +274,43 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
         IgnoreLine(c);
         return AT_ERROR;
     }
-    
+
     *parameter = (signed)tmp;
-    
-    if(isNegative){
+
+    if (isNegative) {
         *parameter *= -1;
     }
-    
+
     return NO_ERROR;
 }
 
 error_t CheckIfDegByOrAt(char *word) {
-    if (strcmp(word, "DEG_BY") == 0) {
-        return NO_ERROR;
-    } else if (strcmp(word, "AT") == 0) {
+    if (strcmp(word, "DEG_BY") == 0 || strcmp(word, "AT") == 0) {
         return NO_ERROR;
     } else {
         return INVALID_VALUE;
     }
 }
 
-error_t ReadWord(Command *command){
+error_t ReadWord(Command *command) {
     int c = getchar();
     unsigned int i = 0;
 
-    while(!isspace(c) && (c != '\0') && i < 9){
+    while (!isspace(c) && (c != '\0') && i < 9) {
         command->name[i] = (char)c;
         i++;
         c = getchar();
     }
     command->name[i] = '\0';
 
-    if(c != '\n' && c!= EOF){
-        if(c == ' '){
+    if (c != '\n' && c != EOF) {
+        if (c == ' ') {
             ungetc(c, stdin);
             return NO_ERROR;
-        }
-        else{
-            if(strcmp(command->name, "DEG_BY") == 0){
+        } else {
+            if (strcmp(command->name, "DEG_BY") == 0) {
                 return DEG_BY_ERROR;
-            }
-            else if(strcmp(command->name, "AT") == 0){
+            } else if (strcmp(command->name, "AT") == 0) {
                 return AT_ERROR;
             }
             return INVALID_VALUE;
@@ -330,8 +325,7 @@ error_t ReadCommand(Command *command) {
     if (error != NO_ERROR) {
         IgnoreLine(0);
         return error;
-    }
-    else {
+    } else {
         int c = getchar();
         error = CheckIfDegByOrAt(command->name);
         if (c == ' ') {
@@ -343,15 +337,13 @@ error_t ReadCommand(Command *command) {
                 IgnoreLine(c);
                 return INVALID_VALUE;
             }
-        }
-        else if(CheckIfDegByOrAt(command->name) == NO_ERROR){
-            if(strcmp(command->name, "DEG_BY") == 0){
+        } else if (CheckIfDegByOrAt(command->name) == NO_ERROR) {
+            if (strcmp(command->name, "DEG_BY") == 0) {
                 return DEG_BY_ERROR;
-            }
-            else{
+            } else {
                 return AT_ERROR;
             }
-        }        
+        }
         if (c == '\n' || c == EOF) {
             return NO_ERROR;
         }
