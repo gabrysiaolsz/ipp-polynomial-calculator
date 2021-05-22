@@ -78,6 +78,7 @@ error_t ReadMono(Mono *result) {
         p = (Poly) {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
         p.arr[0] = m;
         if (error != NO_ERROR) {
+            PolyDestroy(&p);
             return error;
         }
     } else if (c == EOF) {
