@@ -24,8 +24,35 @@ void PrintZero() {
     fprintf(stdin, "0\n");
 }
 
+void PrintCoeff(Poly p){
+    printf("%ld", p.coeff);
+}
+
+void PrintPoly(Poly p);
+
+void PrintMono(Mono m){
+    PrintPoly(m.p);
+    printf(",%d", m.exp);
+}
+
 void PrintPoly(Poly p) {
-    printf("tutaj powinnam wypisać wielomian\n");
+    if(!PolyIsCoeff(&p)){
+        if(p.size == 1 && p.arr[0].exp == 0){
+            PrintPoly(p.arr[0].p);
+            return;
+        }
+        for(size_t i = 0; i < p.size; i++){
+            if(i > 0){
+                printf("+");
+            }
+            printf("(");
+            PrintMono(p.arr[i]);
+            printf(")");
+        }
+    }
+    else{
+        PrintCoeff(p);
+    }
 }
 
 void ExecuteZero(Stack *stack) {
@@ -176,6 +203,7 @@ void ExecutePrint(Stack *stack, unsigned int lineNumber) {
     } else {
         Poly peekPoly = Peek(stack);
         PrintPoly(peekPoly);
+        printf("\n");
     }
 }
 

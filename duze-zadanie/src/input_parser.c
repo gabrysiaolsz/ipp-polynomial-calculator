@@ -69,12 +69,14 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono);
 
 error_t ReadMono(Mono *result) {
     Poly p;
+    Mono m;
     int c = getchar();
     error_t error;
 
     if (c == '(') {
-        Mono m;
         error = ReadMono(&m);
+        p = (Poly) {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+        p.arr[0] = m;
         if (error != NO_ERROR) {
             return error;
         }

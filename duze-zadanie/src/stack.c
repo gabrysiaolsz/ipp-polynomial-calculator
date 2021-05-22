@@ -33,7 +33,7 @@ void Push(Stack *stack, Poly p) {
     if (IsFull(stack)) {
         ResizeStack(stack);
     }
-    stack->array[++stack->size] = p;
+    stack->array[stack->size++] = p;
 }
 
 Poly Pop(Stack *stack) {
