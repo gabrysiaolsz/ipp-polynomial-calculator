@@ -165,6 +165,7 @@ error_t ReadPoly(Poly *polyResult) {
         }
         else{
             IgnoreLine(c);
+            PolyDestroy(polyResult);
             return INVALID_VALUE;
         }
     }
