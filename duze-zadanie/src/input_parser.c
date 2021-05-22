@@ -97,6 +97,7 @@ error_t ReadMono(Mono *result) {
 
     c = getchar();
     if (c != ',') {
+        PolyDestroy(&p);
         IgnoreLine(c);
         return INVALID_VALUE;
     }
@@ -109,6 +110,7 @@ error_t ReadMono(Mono *result) {
 
     c = getchar();
     if (c != ')') {
+        PolyDestroy(&p);
         IgnoreLine(c);
         return INVALID_VALUE;
     }
@@ -297,7 +299,7 @@ error_t ReadWord(Command *command){
     int c = getchar();
     unsigned int i = 0;
 
-    while(!isspace(c) && i < 9){
+    while(!isspace(c) && (c != '\0') && i < 9){
         command->name[i] = (char)c;
         i++;
         c = getchar();
