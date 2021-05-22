@@ -75,12 +75,12 @@ error_t ReadMono(Mono *result) {
 
     if (c == '(') {
         error = ReadMono(&m);
-        p = (Poly) {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
-        p.arr[0] = m;
         if (error != NO_ERROR) {
-            PolyDestroy(&p);
+            //PolyDestroy(&p);
             return error;
         }
+        p = (Poly) {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+        p.arr[0] = m;
     } else if (c == EOF) {
         return ENCOUNTERED_EOF;
     } else if (c == '-') {
