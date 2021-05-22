@@ -133,7 +133,10 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
 
     Poly tmpPoly = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
     tmpPoly.arr[0] = *m;
-    return PolyAdd(p, &tmpPoly);
+    Poly result = PolyAdd(p, &tmpPoly);
+    PolyDestroy(p);
+    PolyDestroy(&tmpPoly);
+    return result;
 }
 
 error_t ReadPoly(Poly *polyResult) {
@@ -242,7 +245,7 @@ error_t ReadDegByParameter(unsigned long *parameter) {
 // TODO -0 chyba źle obsługuję.
 error_t ReadAtParameter(poly_coeff_t *parameter) {
     unsigned long tmp = 0;
-    bool isNegative;
+    bool isNegative = false;
     int c = getchar();
     if (c == '-') {
         isNegative = true;
