@@ -136,7 +136,6 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
     Poly tmpPoly = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
     tmpPoly.arr[0] = *m;
     Poly result = PolyAdd(p, &tmpPoly);
-    // PolyDestroy(p);
     PolyDestroy(&tmpPoly);
     return result;
 }
@@ -194,7 +193,7 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono) {
         IgnoreLine(c);
         return INVALID_VALUE;
     }
-    if (isMono && c != '\n' && c != EOF && c != ',') {
+    if (isMono && c && c != EOF && c != ',') {
         IgnoreLine(c);
         return INVALID_VALUE;
     }
@@ -211,7 +210,7 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono) {
         }
         *result = PolyFromCoeff((long)coeff);
     }
-
+    
     return NO_ERROR;
 }
 
