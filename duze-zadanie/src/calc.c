@@ -72,7 +72,6 @@ void ExecuteZero(Stack *stack) {
 void ExecuteIsCoeff(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
-        PrintZero();
     } else {
         Poly peekPoly = Peek(stack);
         if (PolyIsCoeff(&peekPoly)) {
@@ -86,7 +85,6 @@ void ExecuteIsCoeff(Stack *stack, unsigned int lineNumber) {
 void ExecuteIsZero(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
-        PrintZero();
     } else {
         Poly peekPoly = Peek(stack);
         if (PolyIsZero(&peekPoly)) {
