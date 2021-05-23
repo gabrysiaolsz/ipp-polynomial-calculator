@@ -17,11 +17,11 @@ void PrintStackUnderflow(unsigned int lineNumber) {
 }
 
 void PrintOne() {
-    fprintf(stdin, "1\n");
+    printf("1\n");
 }
 
 void PrintZero() {
-    fprintf(stdin, "0\n");
+    printf("0\n");
 }
 
 void PrintCoeff(Poly p){
@@ -102,7 +102,8 @@ void ExecuteClone(Stack *stack, unsigned int lineNumber) {
         PrintStackUnderflow(lineNumber);
     } else {
         Poly peekPoly = Peek(stack);
-        Push(stack, peekPoly);
+        Poly result = PolyClone(&peekPoly);
+        Push(stack, result);
     }
 }
 
@@ -182,7 +183,7 @@ void ExecuteDeg(Stack *stack, unsigned int lineNumber) {
     } else {
         Poly peekPoly = Peek(stack);
         poly_exp_t exp = PolyDeg(&peekPoly);
-        fprintf(stdin, "%d\n", exp);
+        printf("%d\n", exp);
     }
 }
 
@@ -192,7 +193,7 @@ void ExecuteDegBy(Stack *stack, size_t parameter, unsigned int lineNumber) {
     } else {
         Poly peekPoly = Peek(stack);
         poly_exp_t exp = PolyDegBy(&peekPoly, parameter);
-        fprintf(stdin, "%d\n", exp);
+        printf("%d\n", exp);
     }
 }
 

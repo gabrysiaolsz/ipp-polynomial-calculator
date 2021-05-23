@@ -178,9 +178,7 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
     if(!requireEOL){
         ungetc(c, stdin);
     }
-
-    // TODO nie zawsze należy robić ungetc
-
+    
     return NO_ERROR;
 }
 
