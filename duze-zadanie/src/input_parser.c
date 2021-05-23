@@ -388,6 +388,7 @@ error_t ReadOneLineOfInput(ParsedLine *line) {
                 line->command = command;
                 return error;
             } else {
+                line->isPoly = true;
                 IgnoreLine(c);
                 return INVALID_VALUE;
             }
