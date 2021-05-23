@@ -175,7 +175,12 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
         return INVALID_VALUE;
     }
 
-    ungetc(c, stdin);
+    if(!requireEOL){
+        ungetc(c, stdin);
+    }
+
+    // TODO nie zawsze należy robić ungetc
+
     return NO_ERROR;
 }
 
@@ -281,9 +286,7 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
 }
 
 error_t CheckIfDegByOrAt(char *word) {
-    if (strcmp(word, "DEG_BY") == 0) {
-        return NO_ERROR;
-    } else if (strcmp(word, "AT") == 0) {
+    if (strcmp(word, "DEG_BY") == 0 || strcmp(word, "AT") == 0) {
         return NO_ERROR;
     } else {
         return INVALID_VALUE;

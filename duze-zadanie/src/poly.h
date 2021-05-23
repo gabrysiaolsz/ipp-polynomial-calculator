@@ -226,4 +226,15 @@ Poly PolyAt(const Poly *p, poly_coeff_t x);
  */
 bool RecursiveMonoIsZero(const Mono *m);
 
+/**
+ * Rekurencyjnie i głęboko sprawdza czy wielomian jest współczynnikiem i ustawia
+ * jego wartość na podaną w argumentach zmienną.
+ * @param p : wielomian @f$p@f$.,
+ * @param *result : wskaźnik na zmienną, na której zapisujemy wartość
+ * współczynnika,
+ * @return true - jeśli wielomian jest współczynnikiem, false w przeciwnym
+ * przypadku.
+ */
+bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result);
+
 #endif /* __POLY_H__ */

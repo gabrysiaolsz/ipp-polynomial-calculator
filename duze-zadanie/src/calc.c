@@ -38,8 +38,18 @@ void PrintMono(Mono m){
 void PrintPoly(Poly p) {
     if(!PolyIsCoeff(&p)){
         if(p.size == 1 && p.arr[0].exp == 0){
-            PrintPoly(p.arr[0].p);
-            return;
+            poly_coeff_t tmp;
+            if(RecursivePolyIsCoeff(&p.arr[0].p, &tmp)){
+                PrintPoly(p.arr[0].p);
+                return;
+            }
+            else{
+                printf("(");
+                PrintPoly(p.arr[0].p);
+                printf(",0)");
+                return;
+            }
+
         }
         for(size_t i = 0; i < p.size; i++){
             if(i > 0){
