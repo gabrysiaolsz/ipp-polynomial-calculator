@@ -295,7 +295,7 @@ error_t ReadWord(Command *command) {
     int c = getchar();
     unsigned int i = 0;
 
-    while (!isspace(c) && (c != '\0') && i < 9) {
+    while (!isspace(c) && (c != '\0') && (c != EOF) && i < 9) {
         command->name[i] = (char)c;
         i++;
         c = getchar();
@@ -315,7 +315,10 @@ error_t ReadWord(Command *command) {
             return INVALID_VALUE;
         }
     }
-    ungetc(c, stdin);
+    if(c != EOF){
+        ungetc(c, stdin);
+    }
+
     return NO_ERROR;
 }
 
@@ -326,7 +329,6 @@ error_t ReadCommand(Command *command) {
         return error;
     } else {
         int c = getchar();
-        // error = CheckIfDegByOrAt(command->name);
         if (c == ' ') {
             if (strcmp(command->name, "DEG_BY") == 0) {
                 return ReadDegByParameter(&command->degByParameter);
