@@ -128,9 +128,16 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
         return *p;
     }
     if (PolyIsZero(p)) {
-        Poly polyResult = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
-        polyResult.arr[0] = *m;
-        return polyResult;
+        poly_coeff_t tmp;
+        if(m->exp == 0 && RecursivePolyIsCoeff(&m->p, &tmp)){
+            return PolyFromCoeff(tmp);            
+        }
+        else{
+            Poly polyResult = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
+            polyResult.arr[0] = *m;
+            return polyResult;
+        }
+
     }
 
     Poly tmpPoly = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
