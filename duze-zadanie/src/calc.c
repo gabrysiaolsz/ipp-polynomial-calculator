@@ -131,8 +131,8 @@ void ExecuteNeg(Stack *stack, unsigned int lineNumber) {
         PrintStackUnderflow(lineNumber);
     } else {
         Poly poly = Pop(stack);
-        poly = PolyNeg(&poly);
-        Push(stack, poly);
+        Push(stack, PolyNeg(&poly));
+        PolyDestroy(&poly);
     }
 }
 

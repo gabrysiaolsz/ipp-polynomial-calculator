@@ -8,7 +8,7 @@
 
 #include "stack.h"
 
-#define STARTING_CAPACITY 16
+#define STARTING_CAPACITY 1
 
 Stack *CreateStack() {
     Stack *stack = SafeMalloc(sizeof(Stack));
@@ -21,7 +21,7 @@ Stack *CreateStack() {
 void ResizeStack(Stack *stack) {
     size_t newCapacity = stack->capacity * 2;
 
-    stack->array = SafeRealloc(stack, newCapacity);
+    stack->array = SafeRealloc(stack->array, newCapacity * sizeof(Poly));
     stack->capacity = newCapacity;
 }
 

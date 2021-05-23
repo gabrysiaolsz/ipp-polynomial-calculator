@@ -67,20 +67,18 @@ error_t ReadExp(unsigned int *result) {
 
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono);
 Poly AddMonoToPoly(Poly *p, Mono *m);
+error_t ReadPoly(Poly *polyResult, bool requireEOL);
 
 error_t ReadMono(Mono *result) {
     Poly p = PolyZero();
-    Mono m;
     int c = getchar();
     error_t error;
 
     if (c == '(') {
-        error = ReadMono(&m); // TODO read poly
+        error = ReadPoly(&p, false);
         if (error != NO_ERROR) {
             return error;
         }
-        p = (Poly){.size = 1, .arr = SafeMalloc(sizeof(Mono))};
-        p.arr[0] = m;
     } else if (c == EOF) {
         return ENCOUNTERED_EOF;
     } else if (c == '-') {
@@ -118,6 +116,7 @@ error_t ReadMono(Mono *result) {
 
     *result = MonoFromPoly(&p, (int)exp);
     if (RecursiveMonoIsZero(result)) {
+        PolyDestroy(&result->p);
         *result = (Mono){.exp = (int)exp, .p = PolyZero()};
     }
 
@@ -137,49 +136,46 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
     Poly tmpPoly = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
     tmpPoly.arr[0] = *m;
     Poly result = PolyAdd(p, &tmpPoly);
-    PolyDestroy(p);
+    // PolyDestroy(p);
     PolyDestroy(&tmpPoly);
     return result;
 }
 
-error_t ReadPoly(Poly *polyResult) {
+error_t ReadPoly(Poly *polyResult, bool requireEOL) {
+    *polyResult = PolyZero();
     Mono tmpMono;
-    error_t error = ReadMono(&tmpMono);
-    if (error != NO_ERROR) {
-        return error;
-    }
+    int c;
 
-    if (PolyIsZero(&tmpMono.p)) {
-        *polyResult = PolyZero();
-    } else {
-        *polyResult = (Poly){.size = 1, .arr = SafeMalloc(sizeof(Mono))};
-        polyResult->arr[0] = tmpMono;
-    }
-
-    int c = getchar();
-    while (c == '+') {
-        c = getchar();
-        if (c == '(') {
-            error = ReadMono(&tmpMono);
-            if (error != NO_ERROR) {
-                PolyDestroy(polyResult);
-                return error;
-            }
-            *polyResult = AddMonoToPoly(polyResult, &tmpMono);
-            c = getchar();
-        } else {
-            IgnoreLine(c);
+    while (true) {
+        error_t error = ReadMono(&tmpMono);
+        if (error != NO_ERROR) {
             PolyDestroy(polyResult);
+            return error;
+        }
+        Poly tmpPoly = *polyResult;
+        *polyResult = AddMonoToPoly(&tmpPoly, &tmpMono);
+        PolyDestroy(&tmpPoly);
+
+        c = getchar();
+        if (c != '+') {
+            break;
+        }
+
+        c = getchar();
+        if (c != '(') {
+            PolyDestroy(polyResult);
+            IgnoreLine(c);
             return INVALID_VALUE;
         }
     }
 
-    if (c != '\n' && c != EOF) {
+    if (requireEOL && c != '\n' && c != EOF) {
         PolyDestroy(polyResult);
         IgnoreLine(c);
         return INVALID_VALUE;
     }
 
+    ungetc(c, stdin);
     return NO_ERROR;
 }
 
@@ -285,7 +281,9 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
 }
 
 error_t CheckIfDegByOrAt(char *word) {
-    if (strcmp(word, "DEG_BY") == 0 || strcmp(word, "AT") == 0) {
+    if (strcmp(word, "DEG_BY") == 0) {
+        return NO_ERROR;
+    } else if (strcmp(word, "AT") == 0) {
         return NO_ERROR;
     } else {
         return INVALID_VALUE;
@@ -327,11 +325,11 @@ error_t ReadCommand(Command *command) {
         return error;
     } else {
         int c = getchar();
-        error = CheckIfDegByOrAt(command->name);
+        // error = CheckIfDegByOrAt(command->name);
         if (c == ' ') {
-            if (error == NO_ERROR && strcmp(command->name, "DEG_BY") == 0) {
+            if (strcmp(command->name, "DEG_BY") == 0) {
                 return ReadDegByParameter(&command->degByParameter);
-            } else if (error == NO_ERROR && strcmp(command->name, "AT") == 0) {
+            } else if (strcmp(command->name, "AT") == 0) {
                 return ReadAtParameter(&command->atParameter);
             } else {
                 IgnoreLine(c);
@@ -361,7 +359,7 @@ error_t ReadOneLineOfInput(ParsedLine *line) {
             IgnoreLine(c);
             return LINE_IGNORED;
         case '(':
-            error = ReadPoly(&p);
+            error = ReadPoly(&p, true);
             line->isPoly = true;
             line->poly = p;
             return error;
