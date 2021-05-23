@@ -193,7 +193,7 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono) {
         IgnoreLine(c);
         return INVALID_VALUE;
     }
-    if (isMono && c && c != EOF && c != ',') {
+    if (isMono && c != EOF && c != ',') {
         IgnoreLine(c);
         return INVALID_VALUE;
     }
