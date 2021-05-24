@@ -92,7 +92,7 @@ error_t ReadExp(unsigned int *result) {
  * @param *result : wskaźnik na zapisanie wielomianu wynikowego.
  * @param isNegative : informacja o tym, czy wczytywany wielomian jest ujemny.
  * @param isMono : informacja o tym, czy wczytywany wielomian to współczynnik jednomianu.
- * @return
+ * @return : kod błędu.
  */
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
     unsigned long coeff;
@@ -127,12 +127,12 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
 error_t ReadPoly(Poly *polyResult, bool requireEOL);
 
 /**
- * Wczytuje jednomian.
- * @param *result : wskaźnik do zapisania wyniku.
- * @return : kod błędu.
+ * Wczytuje współczynnik jednomianu, zapisuje go na wielomianie.
+ * @param *p : wskaźnik na zapisanie wyniku.
+ * @return kod błędu.
  */
-error_t ReadMono(Mono *result) {
-    Poly p = PolyZero();
+error_t ReadMonosCoeff(Poly *p){
+    *p = PolyZero();
     int c = getchar();
     error_t error;
 
@@ -141,22 +141,38 @@ error_t ReadMono(Mono *result) {
     }
 
     if (c == '(') {
-        error = ReadPoly(&p, false);
+        error = ReadPoly(p, false);
     } else if (c == '-') {
-        error = ReadConstPoly(&p, true, true);
+        error = ReadConstPoly(p, true, true);
     } else {
         ungetc(c, stdin);
-        error = ReadConstPoly(&p, false, true);
+        error = ReadConstPoly(p, false, true);
     }
     if (error != NO_ERROR) {
         return error;
     }
-
     if ((c = getchar()) != ',') {
-        PolyDestroy(&p);
+        PolyDestroy(p);
         return IgnoreLineAndReturnError(c, INVALID_VALUE);
     }
+    
+    return error;
+}
 
+/**
+ * Wczytuje jednomian.
+ * @param *result : wskaźnik do zapisania wyniku.
+ * @return : kod błędu.
+ */
+error_t ReadMono(Mono *result) {
+    int c;
+    Poly p;
+    
+    error_t error = ReadMonosCoeff(&p);
+    if (error != NO_ERROR) {
+        return error;
+    }
+    
     unsigned int exp;
     error = ReadExp(&exp);
     if (error != NO_ERROR) {
@@ -297,7 +313,7 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
     }
 
     while (isdigit(c)) {
-        tmp = (tmp * 10) + (c - '0');
+        tmp = (tmp * 10) + ((unsigned)c - '0');
         if (tmp > LONG_MAX) {
             if (tmp - 1 == LONG_MAX && isNegative) {
                 *parameter = -1 * (signed)tmp;
