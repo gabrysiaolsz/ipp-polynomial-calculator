@@ -87,7 +87,43 @@ error_t ReadExp(unsigned int *result) {
     return NO_ERROR;
 }
 
-error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono);
+/**
+ * Wczytuje wielomian stały.
+ * @param *result : wskaźnik na zapisanie wielomianu wynikowego.
+ * @param isNegative : informacja o tym, czy wczytywany wielomian jest ujemny.
+ * @param isMono : informacja o tym, czy wczytywany wielomian to współczynnik jednomianu.
+ * @return 
+ */
+error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
+    unsigned long coeff;
+    error_t error = ReadUnsignedCoeff(&coeff);
+    if (error != NO_ERROR) {
+        return error;
+    }
+
+    int c = getchar();
+    if (!isMonosCoeff && c != '\n' && c != EOF) {
+        return IgnoreLineAndReturnError(c, INVALID_VALUE);
+    }
+    if (isMonosCoeff && c != EOF && c != ',') {
+        return IgnoreLineAndReturnError(c, INVALID_VALUE);
+    }
+    if (c == ',') {
+        ungetc(c, stdin);
+    }
+
+    if (isNegative) {
+        *result = PolyFromCoeff(-1 * (poly_coeff_t)coeff);
+    } else {
+        if (coeff > LONG_MAX) {
+            return IgnoreLineAndReturnError(c, INVALID_VALUE);
+        }
+        *result = PolyFromCoeff((poly_coeff_t)coeff);
+    }
+
+    return NO_ERROR;
+}
+
 error_t ReadPoly(Poly *polyResult, bool requireEOL);
 
 /**
@@ -172,8 +208,8 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
 /**
  * Wczytuje wielomian.
  * @param *polyResult : wskaźnik do zapisania wielomianu wynikowego,
- * @param requireEOL : informacja, czy powinniśmy oczek
- * @return 
+ * @param requireEOL : informacja, czy powinniśmy oczekiwać znaku końca linii bądź pliku.
+ * @return kod błędu.
  */
 error_t ReadPoly(Poly *polyResult, bool requireEOL) {
     *polyResult = PolyZero();
@@ -189,24 +225,20 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
         Poly tmpPoly = *polyResult;
         *polyResult = AddMonoToPoly(&tmpPoly, &tmpMono);
         PolyDestroy(&tmpPoly);
-
-        c = getchar();
-        if (c != '+') {
+        
+        if ((c = getchar()) != '+') {
             break;
         }
-
-        c = getchar();
-        if (c != '(') {
+        
+        if ((c = getchar()) != '(') {
             PolyDestroy(polyResult);
-            IgnoreLine(c);
-            return INVALID_VALUE;
+            return IgnoreLineAndReturnError(c, INVALID_VALUE);
         }
     }
 
     if (requireEOL && c != '\n' && c != EOF) {
         PolyDestroy(polyResult);
-        IgnoreLine(c);
-        return INVALID_VALUE;
+        return IgnoreLineAndReturnError(c, INVALID_VALUE);
     }
 
     if (!requireEOL) {
@@ -216,46 +248,18 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
     return NO_ERROR;
 }
 
-error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono) {
-    unsigned long coeff;
-    error_t error = ReadUnsignedCoeff(&coeff);
-    if (error != NO_ERROR) {
-        return error;
-    }
-
-    int c = getchar();
-    if (!isMono && c != '\n' && c != EOF) {
-        IgnoreLine(c);
-        return INVALID_VALUE;
-    }
-    if (isMono && c != EOF && c != ',') {
-        IgnoreLine(c);
-        return INVALID_VALUE;
-    }
-    if (c == ',') {
-        ungetc(c, stdin);
-    }
-
-    if (isNegative) {
-        *result = PolyFromCoeff(-1 * (long)coeff);
-    } else {
-        if (coeff > LONG_MAX) {
-            IgnoreLine(c);
-            return INVALID_VALUE;
-        }
-        *result = PolyFromCoeff((long)coeff);
-    }
-
-    return NO_ERROR;
-}
-
+/**
+ * Wczytuje parametr polecenia DEG_BY
+ * @param *parameter : wskaźnik na zapisanie parametru,
+ * @return kod błędu.
+ */
 error_t ReadDegByParameter(unsigned long *parameter) {
     *parameter = 0;
     unsigned long previous_value;
     int c = getchar();
+    
     if (!isdigit(c)) {
-        IgnoreLine(c);
-        return DEG_BY_ERROR;
+        return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
     }
 
     while (isdigit(c)) {
