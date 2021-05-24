@@ -8,6 +8,9 @@
 
 #include "stack.h"
 
+/**
+ * Początkowy rozmiar stosu.
+ */
 #define STARTING_CAPACITY 32
 
 Stack *CreateStack() {

@@ -91,7 +91,7 @@ error_t ReadExp(unsigned int *result) {
  * Wczytuje wielomian stały.
  * @param *result : wskaźnik na zapisanie wielomianu wynikowego.
  * @param isNegative : informacja o tym, czy wczytywany wielomian jest ujemny.
- * @param isMono : informacja o tym, czy wczytywany wielomian to współczynnik jednomianu.
+ * @param isMonosCoeff : informacja o tym, czy wczytywany wielomian to współczynnik jednomianu.
  * @return : kod błędu.
  */
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
@@ -349,7 +349,7 @@ error_t ReadWord(Command *command) {
     int c = getchar();
     unsigned int i = 0;
 
-    while (!isspace(c) && (c != '\0') && (c != EOF) && i < 9) {
+    while (!isspace(c) && (c != '\0') && (c != EOF) && i < MAX_COMMAND_SIZE - 1) {
         command->name[i] = (char)c;
         i++;
         c = getchar();

@@ -9,13 +9,17 @@
 #ifndef POLYNOMIALS_ERRORS_H
 #define POLYNOMIALS_ERRORS_H
 
+/**
+ * Typ wyliczeniowy przechowujący informacje o możliwych błędach, zwracanych w trakcie trwania
+ * programu.
+ */
 typedef enum {
-    NO_ERROR,
-    INVALID_VALUE,
-    LINE_IGNORED,
-    ENCOUNTERED_EOF,
-    DEG_BY_ERROR,
-    AT_ERROR,
+    NO_ERROR, // Brak błędu.
+    INVALID_VALUE, // Niepoprawna wartość.
+    LINE_IGNORED, // Linia zignorowana.
+    ENCOUNTERED_EOF, // Natrafiliśmy na koniec pliku.
+    DEG_BY_ERROR, // Błąd przy wczytywaniu polecenia DEG_BY.
+    AT_ERROR, // Błąd przy wczytywaniu polecenia AT.
 } error_t;
 
 #endif // POLYNOMIALS_ERRORS_H

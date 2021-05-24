@@ -354,6 +354,9 @@ void ExecuteInput(Stack *stack) {
     }
 }
 
+/**
+ * Główna funkcja wykonująca cały program.
+ */
 int main() {
     Stack *stack = CreateStack();
     ExecuteInput(stack);
