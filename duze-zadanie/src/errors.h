@@ -1,5 +1,5 @@
 /** @file
- * Plik zawierający typ reprezentujący błąd.
+ * Plik zawierający typ reprezentujący różne błędy.
  *
  * @author Gabriela Olszewska <go418326@students.mimuw.edu.pl>
  * @copyright Uniwersytet Warszawski

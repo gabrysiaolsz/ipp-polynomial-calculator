@@ -15,90 +15,110 @@
 #include <stdio.h>
 #include <string.h>
 
+/**
+ * Przechodzi linię do końca, ignorując jej zawartość.
+ * @param c : wczytany znak, od którego mamy zignorować linijkę.
+ */
 void IgnoreLine(int c) {
     while (c != '\n' && c != EOF) {
         c = getchar();
     }
 }
 
+/**
+ * Ignoruje linijkę i zwraca podany błąd.
+ * @param c : znak, od którego ignorujemy linię,
+ * @param error : kod błędu do zwrócenia,
+ * @return : kod błędu.
+ */
+error_t IgnoreLineAndReturnError(int c, error_t error) {
+    IgnoreLine(c);
+    return error;
+}
+
+/**
+ * Wczytuje nieujemny współczynnik wielomianu.
+ * @param *result : wskaźnik do zapisania wyniku,
+ * @return : kod błędu.
+ */
 error_t ReadUnsignedCoeff(unsigned long *result) {
     *result = 0;
     unsigned long longOverflow = (unsigned long)LONG_MAX + 1;
     int c = getchar();
     if (!isdigit(c)) {
-        IgnoreLine(c);
-        return INVALID_VALUE;
+        return IgnoreLineAndReturnError(c, INVALID_VALUE);
     }
 
     while (isdigit(c)) {
         *result = ((*result) * 10) + (unsigned)(c - '0');
         if (*result > longOverflow) {
-            IgnoreLine(c);
-            return INVALID_VALUE;
+            return IgnoreLineAndReturnError(c, INVALID_VALUE);
         }
         c = getchar();
     }
 
-    if (c == EOF) {
-        return NO_ERROR;
+    if (c != EOF) {
+        ungetc(c, stdin);
     }
-    ungetc(c, stdin);
+
     return NO_ERROR;
 }
 
+/**
+ * Wczytuje nieujemny wykładnik wielomianu.
+ * @param *result : wskaźnik do zapisania wyniku,
+ * @return : kod błędu.
+ */
 error_t ReadExp(unsigned int *result) {
     *result = 0;
     int c = getchar();
     while (isdigit(c)) {
         *result = ((*result) * 10) + (unsigned)(c - '0');
         if (*result > INT_MAX) {
-            IgnoreLine(c);
-            return INVALID_VALUE;
+            return IgnoreLineAndReturnError(c, INVALID_VALUE);
         }
         c = getchar();
     }
 
-    if (c == EOF) {
-        return ENCOUNTERED_EOF;
+    if (c != EOF) {
+        ungetc(c, stdin);
     }
-    ungetc(c, stdin);
+
     return NO_ERROR;
 }
 
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono);
-Poly AddMonoToPoly(Poly *p, Mono *m);
 error_t ReadPoly(Poly *polyResult, bool requireEOL);
 
+/**
+ * Wczytuje jednomian.
+ * @param *result : wskaźnik do zapisania wyniku.
+ * @return : kod błędu.
+ */
 error_t ReadMono(Mono *result) {
     Poly p = PolyZero();
     int c = getchar();
     error_t error;
 
+    if (c == EOF) {
+        return ENCOUNTERED_EOF;
+    }
+
     if (c == '(') {
         error = ReadPoly(&p, false);
-        if (error != NO_ERROR) {
-            return error;
-        }
-    } else if (c == EOF) {
-        return ENCOUNTERED_EOF;
     } else if (c == '-') {
         error = ReadConstPoly(&p, true, true);
-        if (error != NO_ERROR) {
-            return error;
-        }
     } else {
         ungetc(c, stdin);
         error = ReadConstPoly(&p, false, true);
-        if (error != NO_ERROR) {
-            return error;
-        }
     }
-
-    c = getchar();
-    if (c != ',') {
+    if (error != NO_ERROR) {
+        return error;
+    }
+    
+    if ((c = getchar()) != ',') {
         PolyDestroy(&p);
-        IgnoreLine(c);
-        return INVALID_VALUE;
+        return IgnoreLineAndReturnError(c, INVALID_VALUE);
     }
 
     unsigned int exp;
@@ -106,15 +126,13 @@ error_t ReadMono(Mono *result) {
     if (error != NO_ERROR) {
         return error;
     }
-
-    c = getchar();
-    if (c != ')') {
+    
+    if ((c = getchar()) != ')') {
         PolyDestroy(&p);
-        IgnoreLine(c);
-        return INVALID_VALUE;
+        return IgnoreLineAndReturnError(c, INVALID_VALUE);
     }
 
-    *result = MonoFromPoly(&p, (int)exp);
+    *result = MonoFromPoly(&p, (poly_exp_t)exp);
     if (RecursiveMonoIsZero(result)) {
         PolyDestroy(&result->p);
         *result = (Mono){.exp = (int)exp, .p = PolyZero()};
@@ -123,21 +141,25 @@ error_t ReadMono(Mono *result) {
     return NO_ERROR;
 }
 
+/**
+ * Dodaje jednomian do wielomianu.
+ * @param p : wielomian do którego dodajemy jednomian,
+ * @param m : jednomian, który dodajemy.
+ * @return wielomian będący wynikiem zsumowania argumentów.
+ */
 Poly AddMonoToPoly(Poly *p, Mono *m) {
     if (PolyIsZero(&m->p)) {
         return *p;
     }
     if (PolyIsZero(p)) {
         poly_coeff_t tmp;
-        if(m->exp == 0 && RecursivePolyIsCoeff(&m->p, &tmp)){
-            return PolyFromCoeff(tmp);            
-        }
-        else{
+        if (m->exp == 0 && RecursivePolyIsCoeff(&m->p, &tmp)) {
+            return PolyFromCoeff(tmp);
+        } else {
             Poly polyResult = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
             polyResult.arr[0] = *m;
             return polyResult;
         }
-
     }
 
     Poly tmpPoly = {.size = 1, .arr = SafeMalloc(sizeof(Mono))};
@@ -147,6 +169,12 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
     return result;
 }
 
+/**
+ * Wczytuje wielomian.
+ * @param *polyResult : wskaźnik do zapisania wielomianu wynikowego,
+ * @param requireEOL : informacja, czy powinniśmy oczek
+ * @return 
+ */
 error_t ReadPoly(Poly *polyResult, bool requireEOL) {
     *polyResult = PolyZero();
     Mono tmpMono;
@@ -181,10 +209,10 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
         return INVALID_VALUE;
     }
 
-    if(!requireEOL){
+    if (!requireEOL) {
         ungetc(c, stdin);
     }
-    
+
     return NO_ERROR;
 }
 
@@ -217,7 +245,7 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMono) {
         }
         *result = PolyFromCoeff((long)coeff);
     }
-    
+
     return NO_ERROR;
 }
 
@@ -321,7 +349,7 @@ error_t ReadWord(Command *command) {
             return INVALID_VALUE;
         }
     }
-    if(c != EOF){
+    if (c != EOF) {
         ungetc(c, stdin);
     }
 
