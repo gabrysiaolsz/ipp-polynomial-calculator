@@ -92,7 +92,7 @@ error_t ReadExp(unsigned int *result) {
  * @param *result : wskaźnik na zapisanie wielomianu wynikowego.
  * @param isNegative : informacja o tym, czy wczytywany wielomian jest ujemny.
  * @param isMono : informacja o tym, czy wczytywany wielomian to współczynnik jednomianu.
- * @return 
+ * @return
  */
 error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
     unsigned long coeff;
@@ -151,7 +151,7 @@ error_t ReadMono(Mono *result) {
     if (error != NO_ERROR) {
         return error;
     }
-    
+
     if ((c = getchar()) != ',') {
         PolyDestroy(&p);
         return IgnoreLineAndReturnError(c, INVALID_VALUE);
@@ -162,7 +162,7 @@ error_t ReadMono(Mono *result) {
     if (error != NO_ERROR) {
         return error;
     }
-    
+
     if ((c = getchar()) != ')') {
         PolyDestroy(&p);
         return IgnoreLineAndReturnError(c, INVALID_VALUE);
@@ -225,11 +225,11 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
         Poly tmpPoly = *polyResult;
         *polyResult = AddMonoToPoly(&tmpPoly, &tmpMono);
         PolyDestroy(&tmpPoly);
-        
+
         if ((c = getchar()) != '+') {
             break;
         }
-        
+
         if ((c = getchar()) != '(') {
             PolyDestroy(polyResult);
             return IgnoreLineAndReturnError(c, INVALID_VALUE);
@@ -257,7 +257,7 @@ error_t ReadDegByParameter(unsigned long *parameter) {
     *parameter = 0;
     unsigned long previous_value;
     int c = getchar();
-    
+
     if (!isdigit(c)) {
         return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
     }
@@ -266,61 +266,69 @@ error_t ReadDegByParameter(unsigned long *parameter) {
         previous_value = *parameter;
         *parameter = ((*parameter) * 10) + (unsigned)(c - '0');
         if (*parameter < previous_value) {
-            IgnoreLine(c);
-            return DEG_BY_ERROR;
+            return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
         }
         c = getchar();
     }
 
     if (c != EOF && c != '\n') {
-        IgnoreLine(c);
-        return DEG_BY_ERROR;
+        return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
     }
 
     return NO_ERROR;
 }
 
-// TODO -0 chyba źle obsługuję.
+/**
+ * Wczytuje parametr polecenia AT.
+ * @param *parameter : wskaźnik na zapisanie parametru, 
+ * @return : kod błędu.
+ */
 error_t ReadAtParameter(poly_coeff_t *parameter) {
     unsigned long tmp = 0;
     bool isNegative = false;
     int c = getchar();
+    
     if (c == '-') {
         isNegative = true;
         c = getchar();
     }
     if (!isdigit(c)) {
-        IgnoreLine(c);
-        return AT_ERROR;
+        return IgnoreLineAndReturnError(c, AT_ERROR);
     }
 
     while (isdigit(c)) {
         tmp = (tmp * 10) + (c - '0');
         if (tmp > LONG_MAX) {
-            if (tmp == (unsigned)LONG_MAX + 1 && isNegative) {
+            if (tmp - 1 == LONG_MAX && isNegative) {
                 *parameter = -1 * (signed)tmp;
                 return NO_ERROR;
             }
-            IgnoreLine(c);
-            return AT_ERROR;
+            return IgnoreLineAndReturnError(c, AT_ERROR);
         }
         c = getchar();
     }
 
     if (c != EOF && c != '\n') {
-        IgnoreLine(c);
-        return AT_ERROR;
+        return IgnoreLineAndReturnError(c, AT_ERROR);
     }
 
     *parameter = (signed)tmp;
 
     if (isNegative) {
+        if(*parameter == 0){
+            return AT_ERROR;
+        }
         *parameter *= -1;
     }
 
     return NO_ERROR;
 }
 
+/**
+ * Sprawdza, czy podane słowo to polecenie DEG_BY albo AT.
+ * @param word : słowo do sprawdzenia,
+ * @return kod błędu.
+ */
 error_t CheckIfDegByOrAt(char *word) {
     if (strcmp(word, "DEG_BY") == 0 || strcmp(word, "AT") == 0) {
         return NO_ERROR;
@@ -329,6 +337,11 @@ error_t CheckIfDegByOrAt(char *word) {
     }
 }
 
+/**
+ * Wczytuje słowo.
+ * @param *command : wskaźnik na polecenie, na którym zapisujemy słowo.
+ * @return kod błędu.
+ */
 error_t ReadWord(Command *command) {
     int c = getchar();
     unsigned int i = 0;
@@ -360,11 +373,15 @@ error_t ReadWord(Command *command) {
     return NO_ERROR;
 }
 
+/**
+ * Wczytuje polecenie.
+ * @param *command : wskaźnik na polecenie, na którym zapisujemy wczytane wartości.
+ * @return : kod błędu.
+ */
 error_t ReadCommand(Command *command) {
     error_t error = ReadWord(command);
     if (error != NO_ERROR) {
-        IgnoreLine(0);
-        return error;
+        return IgnoreLineAndReturnError(0, error);
     } else {
         int c = getchar();
         if (c == ' ') {
