@@ -280,14 +280,14 @@ error_t ReadDegByParameter(unsigned long *parameter) {
 
 /**
  * Wczytuje parametr polecenia AT.
- * @param *parameter : wskaźnik na zapisanie parametru, 
+ * @param *parameter : wskaźnik na zapisanie parametru,
  * @return : kod błędu.
  */
 error_t ReadAtParameter(poly_coeff_t *parameter) {
     unsigned long tmp = 0;
     bool isNegative = false;
     int c = getchar();
-    
+
     if (c == '-') {
         isNegative = true;
         c = getchar();
@@ -315,26 +315,13 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
     *parameter = (signed)tmp;
 
     if (isNegative) {
-        if(*parameter == 0){
+        if (*parameter == 0) {
             return AT_ERROR;
         }
         *parameter *= -1;
     }
 
     return NO_ERROR;
-}
-
-/**
- * Sprawdza, czy podane słowo to polecenie DEG_BY albo AT.
- * @param word : słowo do sprawdzenia,
- * @return kod błędu.
- */
-error_t CheckIfDegByOrAt(char *word) {
-    if (strcmp(word, "DEG_BY") == 0 || strcmp(word, "AT") == 0) {
-        return NO_ERROR;
-    } else {
-        return INVALID_VALUE;
-    }
 }
 
 /**
@@ -380,6 +367,7 @@ error_t ReadWord(Command *command) {
  */
 error_t ReadCommand(Command *command) {
     error_t error = ReadWord(command);
+
     if (error != NO_ERROR) {
         return IgnoreLineAndReturnError(0, error);
     } else {
@@ -390,37 +378,36 @@ error_t ReadCommand(Command *command) {
             } else if (strcmp(command->name, "AT") == 0) {
                 return ReadAtParameter(&command->atParameter);
             } else {
-                IgnoreLine(c);
-                return INVALID_VALUE;
+                return IgnoreLineAndReturnError(c, INVALID_VALUE);
             }
-        } else if (CheckIfDegByOrAt(command->name) == NO_ERROR) {
-            if (strcmp(command->name, "DEG_BY") == 0) {
-                return DEG_BY_ERROR;
-            } else {
-                return AT_ERROR;
-            }
+        }
+        if (strcmp(command->name, "DEG_BY") == 0) {
+            return DEG_BY_ERROR;
+        }
+        if (strcmp(command->name, "AT") == 0) {
+            return AT_ERROR;
         }
         if (c == '\n' || c == EOF) {
             return NO_ERROR;
         }
     }
-    IgnoreLine(0);
-    return INVALID_VALUE;
+
+    return IgnoreLineAndReturnError(0, INVALID_VALUE);
 }
 
+/**
+ * Wczytuje jedną linijkę wejścia.
+ * @param *line : wskaźnik na typ linii, na którym zapisujemy wyniki.
+ * @return : kod błędu.
+ */
 error_t ReadOneLineOfInput(ParsedLine *line) {
-    error_t error;
-    Poly p;
+    line->isPoly = true;
     int c = getchar();
     switch (c) {
         case '#':
-            IgnoreLine(c);
-            return LINE_IGNORED;
+            return IgnoreLineAndReturnError(c, LINE_IGNORED);
         case '(':
-            error = ReadPoly(&p, true);
-            line->isPoly = true;
-            line->poly = p;
-            return error;
+            return ReadPoly(&line->poly, true);
         case EOF:
             return ENCOUNTERED_EOF;
         case '\n':
@@ -428,26 +415,15 @@ error_t ReadOneLineOfInput(ParsedLine *line) {
         default:
             if (isdigit(c)) {
                 ungetc(c, stdin);
-                error = ReadConstPoly(&p, false, false);
-                line->isPoly = true;
-                line->poly = p;
-                return error;
+                return ReadConstPoly(&line->poly, false, false);
             } else if (c == '-') {
-                error = ReadConstPoly(&p, true, false);
-                line->isPoly = true;
-                line->poly = p;
-                return error;
+                return ReadConstPoly(&line->poly, true, false);
             } else if (isalpha(c)) {
                 ungetc(c, stdin);
-                Command command;
-                error = ReadCommand(&command);
                 line->isPoly = false;
-                line->command = command;
-                return error;
+                return ReadCommand(&line->command);
             } else {
-                line->isPoly = true;
-                IgnoreLine(c);
-                return INVALID_VALUE;
+                return IgnoreLineAndReturnError(c, INVALID_VALUE);
             }
     }
 }
