@@ -19,11 +19,17 @@
  * Struktura reprezentująca stos.
  */
 typedef struct Stack {
-    // Zmienna przechowująca aktualny rozmiar stosu.
+    /**
+     * Zmienna przechowująca aktualny rozmiar stosu.
+     */
     size_t size;
-    // Zmienna przechowująca informację o zaalokowanym rozmiarze stosu.
+    /**
+     * Zmienna przechowująca informację o zaalokowanym rozmiarze stosu.
+     */
     size_t capacity;
-    // Tablica przechowująca elementy stosu.
+    /**
+     * Tablica przechowująca elementy stosu.
+     */
     Poly *array;
 } Stack;
 
@@ -33,7 +39,7 @@ typedef struct Stack {
  * @param capacity : rozmiar stosu.
  * @return wskaźnik na stos.
  */
-Stack *CreateStack(size_t capacity);
+Stack *CreateStack();
 
 /**
  * Zwiększa rozmiar stosu.

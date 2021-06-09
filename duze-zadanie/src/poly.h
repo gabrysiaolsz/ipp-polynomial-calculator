@@ -53,7 +53,7 @@ typedef struct Mono {
 } Mono;
 
 /**
- * Daje wartość wykładnika jendomianu.
+ * Daje wartość wykładnika jednomianu.
  * @param m : jednomian
  * @return wartość wykładnika jednomianu
  */
@@ -88,7 +88,6 @@ static inline bool PolyIsZero(const Poly *p);
  * @return jednomian @f$px_i^n@f$
  */
 static inline Mono MonoFromPoly(const Poly *p, poly_exp_t n) {
-    assert(n == 0 || !PolyIsZero(p));
     return (Mono){.p = *p, .exp = n};
 }
 
@@ -219,5 +218,23 @@ bool PolyIsEq(const Poly *p, const Poly *q);
  * @return @f$p(x, x_0, x_1, \ldots)@f$
  */
 Poly PolyAt(const Poly *p, poly_coeff_t x);
+
+/**
+ * Rekurencyjnie i głęboko sprawdza czy jednomian jest zerowy.
+ * @param m : jednomian @f$m@f$.
+ * @return @f$m = 0@f$.
+ */
+bool RecursiveMonoIsZero(const Mono *m);
+
+/**
+ * Rekurencyjnie i głęboko sprawdza czy wielomian jest współczynnikiem i ustawia
+ * jego wartość na podaną w argumentach zmienną.
+ * @param p : wielomian @f$p@f$.,
+ * @param *result : wskaźnik na zmienną, na której zapisujemy wartość
+ * współczynnika,
+ * @return true - jeśli wielomian jest współczynnikiem, false w przeciwnym
+ * przypadku.
+ */
+bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result);
 
 #endif /* __POLY_H__ */

@@ -8,7 +8,10 @@
 
 #include "stack.h"
 
-#define STARTING_CAPACITY 8
+/**
+ * Początkowy rozmiar stosu.
+ */
+#define STARTING_CAPACITY 32
 
 Stack *CreateStack() {
     Stack *stack = SafeMalloc(sizeof(Stack));
@@ -20,9 +23,8 @@ Stack *CreateStack() {
 
 void ResizeStack(Stack *stack) {
     size_t newCapacity = stack->capacity * 2;
-    // TODO sprawdzić czy nie było overflow
 
-    stack->array = SafeRealloc(stack, newCapacity);
+    stack->array = SafeRealloc(stack->array, newCapacity * sizeof(Poly));
     stack->capacity = newCapacity;
 }
 
@@ -34,7 +36,7 @@ void Push(Stack *stack, Poly p) {
     if (IsFull(stack)) {
         ResizeStack(stack);
     }
-    stack->array[++stack->size] = p;
+    stack->array[stack->size++] = p;
 }
 
 Poly Pop(Stack *stack) {

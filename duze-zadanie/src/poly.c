@@ -97,12 +97,7 @@ static inline bool MonoIsZero(const Mono *m) {
     return PolyIsZero(&m->p);
 }
 
-/**
- * Rekurencyjnie i głęboko sprawdza czy jednomian jest zerowy.
- * @param m : jednomian @f$m@f$.
- * @return @f$m = 0@f$.
- */
-static inline bool RecursiveMonoIsZero(const Mono *m) {
+bool RecursiveMonoIsZero(const Mono *m) {
     if (PolyIsCoeff(&m->p)) {
         return PolyIsZero(&m->p);
     }
@@ -115,16 +110,7 @@ static inline bool RecursiveMonoIsZero(const Mono *m) {
     return true;
 }
 
-/**
- * Rekurencyjnie i głęboko sprawdza czy wielomian jest współczynnikiem i ustawia
- * jego wartość na podaną w argumentach zmienną.
- * @param p : wielomian @f$p@f$.,
- * @param *result : wskaźnik na zmienną, na której zapisujemy wartość
- * współczynnika,
- * @return true - jeśli wielomian jest współczynnikiem, false w przeciwnym
- * przypadku.
- */
-static inline bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result) {
+bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result) {
     *result = 0;
     if (PolyIsCoeff(p)) {
         *result = p->coeff;
