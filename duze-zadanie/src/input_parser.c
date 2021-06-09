@@ -131,7 +131,7 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL);
  * @param *p : wskaźnik na zapisanie wyniku.
  * @return kod błędu.
  */
-error_t ReadMonosCoeff(Poly *p){
+error_t ReadMonosCoeff(Poly *p) {
     *p = PolyZero();
     int c = getchar();
     error_t error;
@@ -155,7 +155,7 @@ error_t ReadMonosCoeff(Poly *p){
         PolyDestroy(p);
         return IgnoreLineAndReturnError(c, INVALID_VALUE);
     }
-    
+
     return error;
 }
 
@@ -167,12 +167,12 @@ error_t ReadMonosCoeff(Poly *p){
 error_t ReadMono(Mono *result) {
     int c;
     Poly p;
-    
+
     error_t error = ReadMonosCoeff(&p);
     if (error != NO_ERROR) {
         return error;
     }
-    
+
     unsigned int exp;
     error = ReadExp(&exp);
     if (error != NO_ERROR) {

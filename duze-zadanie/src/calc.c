@@ -27,7 +27,7 @@ void PrintStackUnderflow(unsigned int lineNumber) {
  * Wypisuje 0 albo 1.
  * @param x : zmienna którą mamy wypisać.
  */
-void PrintBool(bool x){
+void PrintBool(bool x) {
     printf("%d\n", x);
 }
 

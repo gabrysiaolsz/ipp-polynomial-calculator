@@ -17,7 +17,7 @@
 #define MAX_COMMAND_SIZE 10
 
 /**
- * Struktura przechowująca typ polecenia. 
+ * Struktura przechowująca typ polecenia.
  */
 typedef struct {
     /**

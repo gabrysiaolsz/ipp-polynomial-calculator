@@ -14,12 +14,12 @@
  * programu.
  */
 typedef enum {
-    NO_ERROR, // Brak błędu.
-    INVALID_VALUE, // Niepoprawna wartość.
-    LINE_IGNORED, // Linia zignorowana.
+    NO_ERROR,        // Brak błędu.
+    INVALID_VALUE,   // Niepoprawna wartość.
+    LINE_IGNORED,    // Linia zignorowana.
     ENCOUNTERED_EOF, // Natrafiliśmy na koniec pliku.
-    DEG_BY_ERROR, // Błąd przy wczytywaniu polecenia DEG_BY.
-    AT_ERROR, // Błąd przy wczytywaniu polecenia AT.
+    DEG_BY_ERROR,    // Błąd przy wczytywaniu polecenia DEG_BY.
+    AT_ERROR,        // Błąd przy wczytywaniu polecenia AT.
 } error_t;
 
 #endif // POLYNOMIALS_ERRORS_H
