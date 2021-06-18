@@ -157,6 +157,18 @@ Poly PolyAdd(const Poly *p, const Poly *q);
 Poly PolyAddMonos(size_t count, const Mono monos[]);
 
 /**
+ * Sumuje listę jednomianów i tworzy z nich wielomian. Przejmuje na własność
+ * pamięć wskazywaną przez @p monos i jej zawartość. Może dowolnie modyfikować
+ * zawartość tej pamięci. Zakładamy, że pamięć wskazywana przez @p monos
+ * została zaalokowana na stercie. Jeśli @p count lub @p monos jest równe zeru
+ * (NULL), tworzy wielomian tożsamościowo równy zeru.
+ * @param[in] count : liczba jednomianów
+ * @param[in] monos : tablica jednomianów
+ * @return wielomian będący sumą jednomianów
+ */
+Poly PolyOwnMonos(size_t count, Mono *monos);
+
+/**
  * Mnoży dwa wielomiany.
  * @param p : wielomian @f$p@f$
  * @param q : wielomian @f$q@f$
@@ -236,5 +248,20 @@ bool RecursiveMonoIsZero(const Mono *m);
  * przypadku.
  */
 bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result);
+
+/**
+ * Dany jest wielomian @param p oraz @param k wielomianów @f$q_0, q_1, q_2, ..., q_{k−1}@f$. 
+ * Niech l oznacza liczbę zmiennych wielomianu @param p, i niech te zmienne są oznaczone 
+ * odpowiednio @f$x_0, x_1, x_2, ..., x_{l−1}@f$. 
+ * Wynikiem złożenia jest wielomian @f$p(q_0, q_1, q_2, ...)@f$, czyli wielomian powstający przez 
+ * podstawienie w wielomianie @param p pod zmienną @f$x_i@f$ wielomianu @f$q_i@f$ 
+ * dla @f$i=0,1,2,...,min(k,l)−1@f$. 
+ * Jeśli @f$k<l@f$, to pod zmienne @f$x_k, ..., x_{l−1}@f$ podstawiamy zera.
+ * @param p : wielomian do którego podstawiamy wielomiany @f$q_0, q_1, ..., q_{k-1}@f$,
+ * @param k : rozmiar tablicy wielomianów @f$q@f$,
+ * @param q : tablica wielomianów @f$q@f$.
+ * @return 
+ */
+Poly PolyCompose(const Poly *p, size_t k, const Poly q[]);
 
 #endif /* __POLY_H__ */

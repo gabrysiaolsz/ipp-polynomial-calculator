@@ -235,6 +235,25 @@ void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber) {
     }
 }
 
+// TODO poprawić tworzenie tablicy 
+void ExecuteCompose(Stack *stack, unsigned int lineNumber){
+    size_t size = StackSize(stack);
+    if (size < 2) {
+        PrintStackUnderflow(lineNumber);
+    }
+    else{
+        Poly p = Pop(stack);
+        Poly q = Pop(stack);
+        Poly *array = SafeMalloc(1 * sizeof(Poly));
+        array[0] = q;
+        Poly result = PolyCompose(&p, 1, array);
+        PolyDestroy(&p);
+        PolyDestroy(&q);
+        Push(stack, result);
+    }
+}
+
+
 /**
  * Wykonuje polecenie PRINT.
  * @param stack : stos wielomianów,
@@ -300,7 +319,11 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
         ExecutePrint(stack, lineNumber);
     } else if (strcmp(command.name, "POP") == 0) {
         ExecutePop(stack, lineNumber);
-    } else {
+    }
+    else if(strcmp(command.name, "COMPOSE") == 0){
+        ExecuteCompose(stack, lineNumber);
+    }
+    else {
         fprintf(stderr, "ERROR %d WRONG COMMAND\n", lineNumber);
     }
 }

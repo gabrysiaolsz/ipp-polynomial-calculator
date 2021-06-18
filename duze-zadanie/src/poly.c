@@ -188,14 +188,13 @@ static inline Poly AddMonosArray(size_t count, const Mono *monos) {
     return newPoly;
 }
 
-Poly PolyAddMonos(size_t count, const Mono monos[]) {
-    Mono *newMonos = SafeMalloc(count * sizeof(Mono));
-    for (size_t i = 0; i < count; i++) {
-        newMonos[i] = monos[i];
+Poly PolyOwnMonos(size_t count, Mono *monos){
+    if(count == 0 || monos == NULL){
+        return PolyZero();
     }
 
-    SortMonosByExp(count, newMonos);
-    Poly newPoly = AddMonosArray(count, newMonos);
+    SortMonosByExp(count, monos);
+    Poly newPoly = AddMonosArray(count, monos);
 
     poly_coeff_t coeff;
     if (RecursivePolyIsCoeff((&newPoly), &coeff)) {
@@ -205,12 +204,36 @@ Poly PolyAddMonos(size_t count, const Mono monos[]) {
         newPoly.arr = NULL;
     }
 
-    for (size_t j = 0; j < count; j++) { // Czyszczenie pamięci po tablicy newMonos.
-        MonoDestroy(&newMonos[j]);
+    for (size_t j = 0; j < count; j++) { // Czyszczenie pamięci po tablicy monos.
+        MonoDestroy(&monos[j]);
     }
-    free(newMonos);
+    free(monos);
 
     return newPoly;
+}
+
+Poly PolyCloneMonos(size_t count, const Mono monos[]) {
+    Mono *newMonos = SafeMalloc(count * sizeof(Mono));
+    for (size_t i = 0; i < count; i++) {
+        newMonos[i] = monos[i];
+    }
+
+    return PolyOwnMonos(count, newMonos);
+}
+
+Poly PolyAddMonos(size_t count, const Mono monos[]) {
+    Mono *newMonos = SafeMalloc(count * sizeof(Mono));
+    size_t size = 0;
+    
+    for (size_t i = 0; i < count; i++) {
+        if(!MonoIsZero(&monos[i]))
+        {
+            newMonos[size] = monos[i];
+            size++;
+        }
+    }
+    
+    return PolyOwnMonos(size, newMonos);
 }
 
 /**
@@ -507,4 +530,48 @@ Poly PolyAt(const Poly *p, poly_coeff_t x) {
     }
 
     return newPoly;
+}
+
+Poly PolyRaiseToPower(const Poly *p, unsigned int power){
+    Poly polyResult = PolyFromCoeff(1);
+
+    if(power == 0){
+        return polyResult;
+    }
+    
+    for(size_t i = 0; i < power; i++){
+        Poly polyTmp = polyResult;
+        polyResult = PolyMul(p, &polyResult);
+        PolyDestroy(&polyTmp);
+    }
+    
+    return polyResult;
+}
+
+Poly PolyCompose(const Poly *p, size_t k, const Poly q[]){
+    if(PolyIsCoeff(p)){
+        return *p; //<- to powinno zrobić kopię tego co siedzi pod p
+    }
+    
+    Poly polyFirstCompose, polyRecursiveCompose, polyResult = PolyZero();
+    for(size_t i = 0; i < p->size; i++) {
+        if(k == 0){
+            polyFirstCompose = PolyZero();
+            polyRecursiveCompose = PolyCompose(&p->arr[i].p, k, q);
+        }
+        else{
+            polyFirstCompose = PolyRaiseToPower(&q[0], p->arr[i].exp);
+            polyRecursiveCompose = PolyCompose(&p->arr[i].p, k-1, &q[1]);
+        }
+
+        Poly polyComposeMono = PolyMul(&polyFirstCompose, &polyRecursiveCompose);
+        PolyDestroy(&polyFirstCompose);
+        PolyDestroy(&polyRecursiveCompose);
+        
+        Poly polyTmp = polyResult;
+        polyResult = PolyAdd(&polyComposeMono, &polyResult);
+        PolyDestroy(&polyComposeMono);
+        PolyDestroy(&polyTmp);
+    }
+    return polyResult;
 }

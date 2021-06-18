@@ -443,3 +443,5 @@ error_t ReadOneLineOfInput(ParsedLine *line) {
             }
     }
 }
+
+//TODO poprawić wczytywanie COMPOSE
