@@ -1,7 +1,8 @@
 /** @file
   Interfejs klasy wielomianów rzadkich wielu zmiennych
 
-  @authors Jakub Pawlewicz <pan@mimuw.edu.pl>, Marcin Peczarski <marpe@mimuw.edu.pl>
+  @authors Jakub Pawlewicz <pan@mimuw.edu.pl>, Marcin Peczarski <marpe@mimuw.edu.pl>,
+  Gabriela Olszewska <go418326@students.mimuw.edu.pl>
   @copyright Uniwersytet Warszawski
   @date 2021
 */
@@ -162,11 +163,22 @@ Poly PolyAddMonos(size_t count, const Mono monos[]);
  * zawartość tej pamięci. Zakładamy, że pamięć wskazywana przez @p monos
  * została zaalokowana na stercie. Jeśli @p count lub @p monos jest równe zeru
  * (NULL), tworzy wielomian tożsamościowo równy zeru.
- * @param[in] count : liczba jednomianów
- * @param[in] monos : tablica jednomianów
+ * @param count : liczba jednomianów
+ * @param monos : tablica jednomianów
  * @return wielomian będący sumą jednomianów
  */
 Poly PolyOwnMonos(size_t count, Mono *monos);
+
+/**
+ * Sumuje listę jednomianów i tworzy z nich wielomian. Nie modyfikuje zawartości
+ * tablicy @p monos. Jeśli jest to wymagane, to wykonuje pełne kopie jednomianów
+ * z tablicy @p monos. Jeśli @p count lub @p monos jest równe zeru (NULL),
+ * tworzy wielomian tożsamościowo równy zeru.
+ * @param count : liczba jednomianów
+ * @param monos : tablica jednomianów
+ * @return wielomian będący sumą jednomianów
+ */
+Poly PolyCloneMonos(size_t count, const Mono monos[]);
 
 /**
  * Mnoży dwa wielomiany.
@@ -244,23 +256,23 @@ bool RecursiveMonoIsZero(const Mono *m);
  * @param p : wielomian @f$p@f$.,
  * @param *result : wskaźnik na zmienną, na której zapisujemy wartość
  * współczynnika,
- * @return true - jeśli wielomian jest współczynnikiem, false w przeciwnym
- * przypadku.
+ * @return Czy wielomian jest współczynnikiem?
  */
 bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result);
 
 /**
- * Dany jest wielomian @param p oraz @param k wielomianów @f$q_0, q_1, q_2, ..., q_{k−1}@f$. 
- * Niech l oznacza liczbę zmiennych wielomianu @param p, i niech te zmienne są oznaczone 
+ * Składa wielomian @f$p@f$ zgodnie z poniższym opisem.
+ * Dany jest wielomian @f$p@f$ oraz @f$k@f$ wielomianów @f$q_0, q_1, q_2, ..., q_{k−1}@f$. 
+ * Niech @f$l@f$ oznacza liczbę zmiennych wielomianu @f$p@f$, i niech te zmienne będą oznaczone 
  * odpowiednio @f$x_0, x_1, x_2, ..., x_{l−1}@f$. 
  * Wynikiem złożenia jest wielomian @f$p(q_0, q_1, q_2, ...)@f$, czyli wielomian powstający przez 
- * podstawienie w wielomianie @param p pod zmienną @f$x_i@f$ wielomianu @f$q_i@f$ 
+ * podstawienie w wielomianie @f$p@f$ pod zmienną @f$x_i@f$ wielomianu @f$q_i@f$ 
  * dla @f$i=0,1,2,...,min(k,l)−1@f$. 
  * Jeśli @f$k<l@f$, to pod zmienne @f$x_k, ..., x_{l−1}@f$ podstawiamy zera.
  * @param p : wielomian do którego podstawiamy wielomiany @f$q_0, q_1, ..., q_{k-1}@f$,
  * @param k : rozmiar tablicy wielomianów @f$q@f$,
- * @param q : tablica wielomianów @f$q@f$.
- * @return 
+ * @param q : tablica wielomianów @f$q@f$,
+ * @return wielomian powstały w wyniku złożenia.
  */
 Poly PolyCompose(const Poly *p, size_t k, const Poly q[]);
 

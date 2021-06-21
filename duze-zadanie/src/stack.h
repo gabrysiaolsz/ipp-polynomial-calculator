@@ -9,11 +9,11 @@
 #ifndef POLYNOMIALS_STACK_H
 #define POLYNOMIALS_STACK_H
 
-#include "poly.h"
-#include "safe_memory_allocation.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include "poly.h"
+#include "safe_memory_allocation.h"
 
 /**
  * Struktura reprezentująca stos.
@@ -36,7 +36,7 @@ typedef struct Stack {
 /**
  * Tworzy stos. Ustawia jego capacity na podany w argumentach rozmiar,
  * wartość top ustawia na -1, alokuje pamięć na tablicę rozmiaru capacity.
- * @param capacity : rozmiar stosu.
+ * @param capacity : rozmiar stosu,
  * @return wskaźnik na stos.
  */
 Stack *CreateStack();
@@ -50,8 +50,8 @@ void ResizeStack(Stack *stack);
 
 /**
  * Sprawdza, czy stos jest pusty.
- * @param stack : stos
- * @return true, jeśli stos jest pusty i false w przeciwnym przypadku.
+ * @param stack : stos,
+ * @return Czy stos jest pusty?
  */
 static inline bool IsEmpty(Stack *stack) {
     return stack->size == 0;
@@ -59,14 +59,14 @@ static inline bool IsEmpty(Stack *stack) {
 
 /**
  * Sprawdza, czy stos jest pełny.
- * @param stack : stos
- * @return true, jeśli stos jest pełny i false w przeciwnym przypadku.
+ * @param stack : stos,
+ * @return Czy stos jest pełny?
  */
 bool IsFull(Stack *stack);
 
 /**
  * Sprawdza rozmiar stosu.
- * @param stack : stos
+ * @param stack : stos,
  * @return rozmiar stosu.
  */
 static inline size_t StackSize(Stack *stack) {
@@ -96,7 +96,7 @@ Poly Pop(Stack *stack);
 Poly Peek(Stack *stack);
 
 /**
- * Usuwa stos i czyści pamięć po wielomianach które się w nim znajdują.
+ * Usuwa stos i czyści pamięć po wielomianach, które się na nim znajdują.
  */
 void DestroyStack(Stack *stack);
 

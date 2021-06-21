@@ -19,7 +19,7 @@
  * wielomianów do wykonania polecenia wraz z numer linii na której było to polecenie.
  * @param lineNumber : numer linii na której znajdowało się polecenie.
  */
-void PrintStackUnderflow(unsigned int lineNumber) {
+static inline void PrintStackUnderflow(unsigned int lineNumber) {
     fprintf(stderr, "ERROR %d STACK UNDERFLOW\n", lineNumber);
 }
 
@@ -27,7 +27,7 @@ void PrintStackUnderflow(unsigned int lineNumber) {
  * Wypisuje 0 albo 1.
  * @param x : zmienna którą mamy wypisać.
  */
-void PrintBool(bool x) {
+static inline void PrintBool(bool x) {
     printf("%d\n", x);
 }
 
@@ -35,17 +35,17 @@ void PrintBool(bool x) {
  * Wypisuje współczynnik wielomianu.
  * @param p : wielomian, którego współczynnik wypisujemy.
  */
-void PrintCoeff(Poly p) {
+static inline void PrintCoeff(Poly p) {
     printf("%ld", p.coeff);
 }
 
-void PrintPoly(Poly p);
+static inline void PrintPoly(Poly p);
 
 /**
  * Wypisuje jednomian.
  * @param m : jednomian do wypisania.
  */
-void PrintMono(Mono m) {
+static inline void PrintMono(Mono m) {
     PrintPoly(m.p);
     printf(",%d", m.exp);
 }
@@ -54,7 +54,7 @@ void PrintMono(Mono m) {
  * Wypisuje wielomian, którego rozmiar wynosi 1.
  * @param p : wielomian rozmiaru 1 do wypisania.
  */
-void PrintPolyWithSize1(Poly p) {
+static inline void PrintPolyWithSize1(Poly p) {
     poly_coeff_t tmp;
     if (RecursivePolyIsCoeff(&p.arr[0].p, &tmp)) {
         PrintPoly(p.arr[0].p);
@@ -69,7 +69,7 @@ void PrintPolyWithSize1(Poly p) {
  * Wypisuje wielomian.
  * @param p : wielomian do wypisania.
  */
-void PrintPoly(Poly p) {
+static inline void PrintPoly(Poly p) {
     if (!PolyIsCoeff(&p)) {
         if (p.size == 1 && p.arr[0].exp == 0) {
             PrintPolyWithSize1(p);
@@ -92,7 +92,7 @@ void PrintPoly(Poly p) {
  * Wykonuje polecenie ZERO.
  * @param stack : stos wielomianów.
  */
-void ExecuteZero(Stack *stack) {
+static inline void ExecuteZero(Stack *stack) {
     Push(stack, PolyZero());
 }
 
@@ -102,7 +102,8 @@ void ExecuteZero(Stack *stack) {
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  * @param function : wskaźnik na funkcję PolyIsCoeff albo PolyIsZero, którą będziemy wykonywać.
  */
-void ExecuteIs(Stack *stack, unsigned int lineNumber, bool (*function)(const Poly *)) {
+static inline void ExecuteIs(Stack *stack, unsigned int lineNumber,
+                             bool (*function)(const Poly *)) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -120,7 +121,7 @@ void ExecuteIs(Stack *stack, unsigned int lineNumber, bool (*function)(const Pol
  * @param stack : stos wielomianów,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecuteClone(Stack *stack, unsigned int lineNumber) {
+static inline void ExecuteClone(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -133,11 +134,11 @@ void ExecuteClone(Stack *stack, unsigned int lineNumber) {
 /**
  * Wykonuje polecenie ADD, SUB lub MUL.
  * @param stack : stos wielomianów,
- * @param lineNumber : numer linii na której wystąpiło polecenie.
+ * @param lineNumber : numer linii na której wystąpiło polecenie,
  * @param function : wskaźnik na funkcję PolyAdd, PolySub albo PolyMul, którą będziemy wykonywać.
  */
-void ExecuteArithmeticOp(Stack *stack, unsigned int lineNumber,
-                         Poly (*function)(const Poly *, const Poly *)) {
+static inline void ExecuteArithmeticOp(Stack *stack, unsigned int lineNumber,
+                                       Poly (*function)(const Poly *, const Poly *)) {
     size_t size = StackSize(stack);
     if (size < 2) {
         PrintStackUnderflow(lineNumber);
@@ -156,7 +157,7 @@ void ExecuteArithmeticOp(Stack *stack, unsigned int lineNumber,
  * @param stack : stos wielomianów,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecuteIsEq(Stack *stack, unsigned int lineNumber) {
+static inline void ExecuteIsEq(Stack *stack, unsigned int lineNumber) {
     size_t size = StackSize(stack);
     if (size < 2) {
         PrintStackUnderflow(lineNumber);
@@ -177,7 +178,7 @@ void ExecuteIsEq(Stack *stack, unsigned int lineNumber) {
  * @param stack : stos wielomianów,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecuteNeg(Stack *stack, unsigned int lineNumber) {
+static inline void ExecuteNeg(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -192,7 +193,7 @@ void ExecuteNeg(Stack *stack, unsigned int lineNumber) {
  * @param stack : stos wielomianów,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecuteDeg(Stack *stack, unsigned int lineNumber) {
+static inline void ExecuteDeg(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -208,7 +209,7 @@ void ExecuteDeg(Stack *stack, unsigned int lineNumber) {
  * @param parameter : parametr polecenia,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecuteDegBy(Stack *stack, size_t parameter, unsigned int lineNumber) {
+static inline void ExecuteDegBy(Stack *stack, size_t parameter, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -224,7 +225,7 @@ void ExecuteDegBy(Stack *stack, size_t parameter, unsigned int lineNumber) {
  * @param parameter : parametr polecenia,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber) {
+static inline void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -235,21 +236,26 @@ void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber) {
     }
 }
 
-void ExecuteCompose(Stack *stack, size_t parameter, unsigned int lineNumber){
+/**
+ * Wykonuje polecenie COMPOSE.
+ * @param stack : stos wielomianów,
+ * @param parameter : parametr polecenia,
+ * @param lineNumber : numer linii na której wystąpiło polecenie.
+ */
+static inline void ExecuteCompose(Stack *stack, size_t parameter, unsigned int lineNumber) {
     size_t size = StackSize(stack);
-    if (size < parameter) {
+    if ((size > 0 && size - 1 < parameter) || size == 0) {
         PrintStackUnderflow(lineNumber);
-    }
-    else{
+    } else {
         Poly p = Pop(stack);
         Poly *array = SafeMalloc(parameter * sizeof(Poly));
-        for(size_t i = 0; i < parameter; i++){
+        for (size_t i = 0; i < parameter; i++) {
             Poly q = Pop(stack);
             array[parameter - 1 - i] = q;
         }
         Poly result = PolyCompose(&p, parameter, array);
         PolyDestroy(&p);
-        for(size_t i = 0; i < parameter; i++){
+        for (size_t i = 0; i < parameter; i++) {
             PolyDestroy(&array[i]);
         }
         free(array);
@@ -257,13 +263,12 @@ void ExecuteCompose(Stack *stack, size_t parameter, unsigned int lineNumber){
     }
 }
 
-
 /**
  * Wykonuje polecenie PRINT.
  * @param stack : stos wielomianów,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecutePrint(Stack *stack, unsigned int lineNumber) {
+static inline void ExecutePrint(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -278,7 +283,7 @@ void ExecutePrint(Stack *stack, unsigned int lineNumber) {
  * @param stack : stos wielomianów,
  * @param lineNumber : numer linii na której wystąpiło polecenie.
  */
-void ExecutePop(Stack *stack, unsigned int lineNumber) {
+static inline void ExecutePop(Stack *stack, unsigned int lineNumber) {
     if (IsEmpty(stack)) {
         PrintStackUnderflow(lineNumber);
     } else {
@@ -294,7 +299,7 @@ void ExecutePop(Stack *stack, unsigned int lineNumber) {
  * @param command : polecenie,
  * @param lineNumber : numer linii.
  */
-void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
+static inline void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
     if (strcmp(command.name, "ZERO") == 0) {
         ExecuteZero(stack);
     } else if (strcmp(command.name, "IS_COEFF") == 0) {
@@ -323,11 +328,9 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
         ExecutePrint(stack, lineNumber);
     } else if (strcmp(command.name, "POP") == 0) {
         ExecutePop(stack, lineNumber);
-    }
-    else if(strcmp(command.name, "COMPOSE") == 0){
+    } else if (strcmp(command.name, "COMPOSE") == 0) {
         ExecuteCompose(stack, command.degByOrComposeParameter, lineNumber);
-    }
-    else {
+    } else {
         fprintf(stderr, "ERROR %d WRONG COMMAND\n", lineNumber);
     }
 }
@@ -337,7 +340,7 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
  * @param stack : stos wielomianów,
  * @param p : wielomian.
  */
-void PushPoly(Stack *stack, Poly p) {
+static inline void PushPoly(Stack *stack, Poly p) {
     Push(stack, p);
 }
 
@@ -379,6 +382,8 @@ void ExecuteInput(Stack *stack) {
                 break;
             case ENCOUNTERED_EOF:
                 return;
+                // Nie mamy przypadku "default", ponieważ sprawdzamy każdą możliwość typu
+                // wyliczeniowego
         }
         lineNumber++;
     }
@@ -387,8 +392,9 @@ void ExecuteInput(Stack *stack) {
 /**
  * Główna funkcja wykonująca cały program.
  */
-int main() {
-    Stack *stack = CreateStack();
-    ExecuteInput(stack);
-    DestroyStack(stack);
-}
+// int main() {
+//     Stack *stack = CreateStack();
+//     ExecuteInput(stack);
+//     DestroyStack(stack);
+// }
+//TODO odkomentować

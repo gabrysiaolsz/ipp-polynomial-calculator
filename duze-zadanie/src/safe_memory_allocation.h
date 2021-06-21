@@ -14,8 +14,8 @@
 /**
  * Sprawdza, czy malloc nie zwrócił błędu.
  * @param size : rozmiar pamięci do zaalokowania,
- * @return jeśli malloc zwrócił NULL, kończy program z błędem 1. W przeciwnym
- * przypadku zwraca to, co zwrócił malloc.
+ * @return jeśli malloc zwrócił NULL, kończy program z błędem 1. 
+ * W przeciwnym przypadku zwraca to, co zwrócił malloc.
  */
 static inline void *SafeMalloc(size_t size) {
     void *malloc_ptr = malloc(size);
@@ -28,8 +28,8 @@ static inline void *SafeMalloc(size_t size) {
 /**
  * Sprawdza, czy realloc nie zwrócił błędu.
  * @param size : rozmiar pamięci do zaalokowania,
- * @return jeśli malloc zwrócił NULL, kończy program z błędem 1. W przeciwnym
- * przypadku zwraca to, co zwrócił malloc.
+ * @return jeśli malloc zwrócił NULL, kończy program z błędem 1. 
+ * W przeciwnym przypadku zwraca to, co zwrócił malloc.
  */
 static inline void *SafeRealloc(void *ptr, size_t size) {
     void *realloc_ptr = realloc(ptr, size);

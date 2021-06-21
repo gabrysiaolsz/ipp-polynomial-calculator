@@ -1,5 +1,5 @@
 /** @file
- * Interfejs wykonujący podstawowe działania na wielomianach rzadkich wielu
+ * Implementacja interfejsu podstawowych działań na wielomianach rzadkich wielu
  * zmiennych.
  *
  * @author Gabriela Olszewska <go418326@students.mimuw.edu.pl>
@@ -10,7 +10,6 @@
 #include "poly.h"
 #include "safe_memory_allocation.h"
 #include <stdlib.h>
-#include <stdio.h> //TODO usunac 
 
 void PolyDestroy(Poly *p) {
     if (PolyIsCoeff(p)) {
@@ -118,10 +117,6 @@ bool RecursivePolyIsCoeff(const Poly *p, poly_coeff_t *result) {
         return true;
     }
 
-    for (size_t i = 0; i < p->size; ++i) {
-        assert(i == 0 || MonoGetExp(&p->arr[i]) > MonoGetExp(&p->arr[i - 1]));
-    }
-
     if (p->size == 0) {
         return true;
     }
@@ -149,6 +144,22 @@ static inline Mono AddMonos(const Mono *m, const Mono *n) {
 
     return (Mono){.exp = m->exp, .p = PolyAdd(&m->p, &n->p)};
 }
+
+/**
+ * Sprawdza, czy w tablicy @param monos jednomiany są posortowane według wykładnika.
+ * @param count : rozmiar tablicy,
+ * @param monos : tablica jednomianów,
+ * @return Czy jednomiany są posortowane według wykładnika?
+ */
+static inline bool CheckIfExpsAreSorted(size_t count, Mono *monos) {
+    for (size_t i = 0; i < count; i++) {
+        if(i != 0 && MonoGetExp(&monos[i]) <= MonoGetExp(&monos[i - 1])){
+            return false;
+        }
+    }
+    return true;
+}
+
 
 /**
  * Dodaje jednomiany z tablicy monos do siebie, tworząc nowy wielomian.
@@ -189,21 +200,33 @@ static inline Poly AddMonosArray(size_t count, const Mono *monos) {
     return newPoly;
 }
 
-Poly PolyOwnMonos(size_t count, Mono *monos){
-    if(count == 0 || monos == NULL){
+/**
+ * Sprawdza, czy wielomian jest wielomianem stałym - jeśli tak, doprowadza go do najprostszej 
+ * postaci. W przeciwnym przypadku nie robi nic.
+ * @param newPoly : wielomian do sprawdzenia.
+ */
+static inline void HandleCoeffResult(Poly *newPoly){
+    poly_coeff_t coeff;
+    if (RecursivePolyIsCoeff((newPoly), &coeff)) {
+        poly_coeff_t tmp = coeff;
+        PolyDestroy(newPoly);
+        newPoly->coeff = tmp;
+        newPoly->arr = NULL;
+    }
+}
+
+Poly PolyOwnMonos(size_t count, Mono *monos) {
+    if (count == 0 || monos == NULL) {
         return PolyZero();
     }
 
-    SortMonosByExp(count, monos);
-    Poly newPoly = AddMonosArray(count, monos);
-
-    poly_coeff_t coeff;
-    if (RecursivePolyIsCoeff((&newPoly), &coeff)) {
-        poly_coeff_t tmp = coeff;
-        PolyDestroy(&newPoly);
-        newPoly.coeff = tmp;
-        newPoly.arr = NULL;
+    bool sorted = CheckIfExpsAreSorted(count, monos);
+    if(!sorted){
+        SortMonosByExp(count, monos);
     }
+
+    Poly newPoly = AddMonosArray(count, monos);
+    HandleCoeffResult(&newPoly);
 
     for (size_t j = 0; j < count; j++) { // Czyszczenie pamięci po tablicy monos.
         MonoDestroy(&monos[j]);
@@ -216,7 +239,7 @@ Poly PolyOwnMonos(size_t count, Mono *monos){
 Poly PolyCloneMonos(size_t count, const Mono monos[]) {
     Mono *newMonos = SafeMalloc(count * sizeof(Mono));
     for (size_t i = 0; i < count; i++) {
-        newMonos[i] = monos[i];
+        newMonos[i] = MonoClone(&monos[i]);
     }
 
     return PolyOwnMonos(count, newMonos);
@@ -225,15 +248,14 @@ Poly PolyCloneMonos(size_t count, const Mono monos[]) {
 Poly PolyAddMonos(size_t count, const Mono monos[]) {
     Mono *newMonos = SafeMalloc(count * sizeof(Mono));
     size_t size = 0;
-    
+
     for (size_t i = 0; i < count; i++) {
-        if(!MonoIsZero(&monos[i]))
-        {
+        if (!MonoIsZero(&monos[i])) {
             newMonos[size] = monos[i];
             size++;
         }
     }
-    
+
     return PolyOwnMonos(size, newMonos);
 }
 
@@ -533,69 +555,90 @@ Poly PolyAt(const Poly *p, poly_coeff_t x) {
     return newPoly;
 }
 
-Poly PolyRaiseToPower(const Poly *p, poly_exp_t power){
-    if(power == 0){
+/**
+ * Podnosi wielomian do danej potęgi.
+ * @param p : wielomian,
+ * @param power : potęga,
+ * @return : wielomian podniesiony do potęgi.
+ */
+static inline Poly PolyRaiseToPower(const Poly *p, poly_exp_t power) {
+    if (power == 0) {
         return PolyFromCoeff(1);
     }
-    
-    if(PolyIsCoeff(p)){
+
+    if (PolyIsCoeff(p)) {
         return PolyFromCoeff(RaiseToPower(p->coeff, power));
     }
-    
-    Poly polySquared = PolyRaiseToPower(p, power/2);
+
+    Poly polySquared = PolyRaiseToPower(p, power / 2);
     Poly polyResult = PolyMul(&polySquared, &polySquared);
-    
-    if(power % 2 == 1){
+
+    if (power % 2 == 1) {
         Poly polyTmp = polyResult;
         polyResult = PolyMul(p, &polyResult);
         PolyDestroy(&polyTmp);
     }
 
     PolyDestroy(&polySquared);
-    
+
     return polyResult;
 }
 
-Poly PolyComposeByIndex(const Poly *p, size_t k, const Poly q[], size_t index);
+static inline Poly PolyComposeByIndex(const Poly *p, size_t k, const Poly q[], size_t index);
 
-Poly PolyComposeMono(const Mono *m, size_t k, const Poly q[], size_t index){
+/**
+ * Składa jednomian.
+ * @param m : jednomian
+ * @param k : rozmiar tablicy q
+ * @param q : tablica wielomianów
+ * @param index : indeks składanego wielomianu
+ * @return : Złożony wielomian
+ */
+static inline Poly PolyComposeMono(const Mono *m, size_t k, const Poly q[], size_t index) {
     Poly basePoly;
-    if(index < k){
+    if (index < k) {
         basePoly = q[index];
-    }
-    else{
+    } else {
         basePoly = PolyZero();
     }
-    
+
     Poly polyToMultiply = PolyRaiseToPower(&basePoly, m->exp);
     Poly nextPoly = PolyComposeByIndex(&m->p, k, q, index + 1);
     Poly resultPoly = PolyMul(&polyToMultiply, &nextPoly);
 
     PolyDestroy(&polyToMultiply);
     PolyDestroy(&nextPoly);
-    
+
     return resultPoly;
 }
 
-Poly PolyComposeByIndex(const Poly *p, size_t k, const Poly q[], size_t index){
-    if(PolyIsCoeff(p)){
-        return PolyClone(p); //TODO trzeba?
+/**
+ * Składa wielomian, używając wielomianów z tablicy od podanego indeksu.
+ * @param p : wielomian,
+ * @param k : rozmiar tablicy q,
+ * @param q : tablica wielomianów,
+ * @param index : indeks wielomianu
+ * @return : złożony wielomian
+ */
+static inline Poly PolyComposeByIndex(const Poly *p, size_t k, const Poly q[], size_t index) {
+    if (PolyIsCoeff(p)) {
+        return PolyClone(p);
     }
-    
+
     Poly resultPoly = PolyZero();
-    
-    for(size_t i = 0; i < p->size; i++){
+
+    for (size_t i = 0; i < p->size; i++) {
         Poly composePoly = PolyComposeMono(&p->arr[i], k, q, index);
         Poly tmpPoly = resultPoly;
         resultPoly = PolyAdd(&resultPoly, &composePoly);
-        
+
         PolyDestroy(&tmpPoly);
         PolyDestroy(&composePoly);
     }
-    
+
     return resultPoly;
 }
 
-Poly PolyCompose(const Poly *p, size_t k, const Poly q[]){
+Poly PolyCompose(const Poly *p, size_t k, const Poly q[]) {
     return PolyComposeByIndex(p, k, q, 0);
 }

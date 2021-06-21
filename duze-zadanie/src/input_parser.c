@@ -19,7 +19,7 @@
  * Przechodzi linię do końca, ignorując jej zawartość.
  * @param c : wczytany znak, od którego mamy zignorować linijkę.
  */
-void IgnoreLine(int c) {
+static inline void IgnoreLine(int c) {
     while (c != '\n' && c != EOF) {
         c = getchar();
     }
@@ -31,7 +31,7 @@ void IgnoreLine(int c) {
  * @param error : kod błędu do zwrócenia,
  * @return : kod błędu.
  */
-error_t IgnoreLineAndReturnError(int c, error_t error) {
+static inline error_t IgnoreLineAndReturnError(int c, error_t error) {
     IgnoreLine(c);
     return error;
 }
@@ -41,7 +41,7 @@ error_t IgnoreLineAndReturnError(int c, error_t error) {
  * @param *result : wskaźnik do zapisania wyniku,
  * @return : kod błędu.
  */
-error_t ReadUnsignedCoeff(unsigned long *result) {
+static inline error_t ReadUnsignedCoeff(unsigned long *result) {
     *result = 0;
     unsigned long longOverflow = (unsigned long)LONG_MAX + 1;
     int c = getchar();
@@ -69,7 +69,7 @@ error_t ReadUnsignedCoeff(unsigned long *result) {
  * @param *result : wskaźnik do zapisania wyniku,
  * @return : kod błędu.
  */
-error_t ReadExp(unsigned int *result) {
+static inline error_t ReadExp(unsigned int *result) {
     *result = 0;
     int c = getchar();
     while (isdigit(c)) {
@@ -94,7 +94,7 @@ error_t ReadExp(unsigned int *result) {
  * @param isMonosCoeff : informacja o tym, czy wczytywany wielomian to współczynnik jednomianu.
  * @return : kod błędu.
  */
-error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
+static inline error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
     unsigned long coeff;
     error_t error = ReadUnsignedCoeff(&coeff);
     if (error != NO_ERROR) {
@@ -124,14 +124,14 @@ error_t ReadConstPoly(Poly *result, bool isNegative, bool isMonosCoeff) {
     return NO_ERROR;
 }
 
-error_t ReadPoly(Poly *polyResult, bool requireEOL);
+static inline error_t ReadPoly(Poly *polyResult, bool requireEOL);
 
 /**
  * Wczytuje współczynnik jednomianu, zapisuje go na wielomianie.
  * @param *p : wskaźnik na zapisanie wyniku.
  * @return kod błędu.
  */
-error_t ReadMonosCoeff(Poly *p) {
+static inline error_t ReadMonosCoeff(Poly *p) {
     *p = PolyZero();
     int c = getchar();
     error_t error;
@@ -164,7 +164,7 @@ error_t ReadMonosCoeff(Poly *p) {
  * @param *result : wskaźnik do zapisania wyniku.
  * @return : kod błędu.
  */
-error_t ReadMono(Mono *result) {
+static inline error_t ReadMono(Mono *result) {
     int c;
     Poly p;
 
@@ -199,7 +199,7 @@ error_t ReadMono(Mono *result) {
  * @param m : jednomian, który dodajemy.
  * @return wielomian będący wynikiem zsumowania argumentów.
  */
-Poly AddMonoToPoly(Poly *p, Mono *m) {
+static inline Poly AddMonoToPoly(Poly *p, Mono *m) {
     if (PolyIsZero(&m->p)) {
         return *p;
     }
@@ -227,7 +227,7 @@ Poly AddMonoToPoly(Poly *p, Mono *m) {
  * @param requireEOL : informacja, czy powinniśmy oczekiwać znaku końca linii bądź pliku.
  * @return kod błędu.
  */
-error_t ReadPoly(Poly *polyResult, bool requireEOL) {
+static inline error_t ReadPoly(Poly *polyResult, bool requireEOL) {
     *polyResult = PolyZero();
     Mono tmpMono;
     int c;
@@ -238,6 +238,7 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
             PolyDestroy(polyResult);
             return error;
         }
+
         Poly tmpPoly = *polyResult;
         *polyResult = AddMonoToPoly(&tmpPoly, &tmpMono);
         PolyDestroy(&tmpPoly);
@@ -265,45 +266,44 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
 }
 
 /**
+ * Ignoruje całą linię i zwraca odpowiedni błąd - albo DEG_BY_ERROR, albo COMPOSE_ERROR.
+ * @param c : wczytany znak, od którego mamy zignorować linijkę,
+ * @param isDegBy : zmienna mówiący, który błąd zwrócić,
+ * @return odpowiedni błąd.
+ */
+static inline error_t IgnoreLineAndReturnRightError(int c, bool isDegBy) {
+    if (isDegBy) {
+        return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+    } else {
+        return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
+    }
+}
+
+/**
  * Wczytuje parametr polecenia DEG_BY lub polecenia COMPOSE
  * @param *parameter : wskaźnik na zapisanie parametru,
  * @return kod błędu.
  */
-error_t ReadDegByOrComposeParameter(unsigned long *parameter, bool isDegBy) {
+static inline error_t ReadDegByOrComposeParameter(unsigned long *parameter, bool isDegBy) {
     *parameter = 0;
     unsigned long previous_value;
     int c = getchar();
 
     if (!isdigit(c)) {
-        if(isDegBy){
-            return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
-        }
-        else{
-            return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
-        }
+        IgnoreLineAndReturnRightError(c, isDegBy);
     }
 
     while (isdigit(c)) {
         previous_value = *parameter;
         *parameter = ((*parameter) * 10) + (unsigned)(c - '0');
         if (*parameter < previous_value) {
-            if(isDegBy){
-                return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
-            }
-            else{
-                return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
-            }
+            IgnoreLineAndReturnRightError(c, isDegBy);
         }
         c = getchar();
     }
 
     if (c != EOF && c != '\n') {
-        if(isDegBy){
-            return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
-        }
-        else{
-            return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
-        }
+        IgnoreLineAndReturnRightError(c, isDegBy);
     }
 
     return NO_ERROR;
@@ -314,7 +314,7 @@ error_t ReadDegByOrComposeParameter(unsigned long *parameter, bool isDegBy) {
  * @param *parameter : wskaźnik na zapisanie parametru,
  * @return : kod błędu.
  */
-error_t ReadAtParameter(poly_coeff_t *parameter) {
+static inline error_t ReadAtParameter(poly_coeff_t *parameter) {
     unsigned long tmp = 0;
     bool isNegative = false;
     int c = getchar();
@@ -360,7 +360,7 @@ error_t ReadAtParameter(poly_coeff_t *parameter) {
  * @param *command : wskaźnik na polecenie, na którym zapisujemy słowo.
  * @return kod błędu.
  */
-error_t ReadWord(Command *command) {
+static inline error_t ReadWord(Command *command) {
     int c = getchar();
     unsigned int i = 0;
 
@@ -396,7 +396,7 @@ error_t ReadWord(Command *command) {
  * @param *command : wskaźnik na polecenie, na którym zapisujemy wczytane wartości.
  * @return : kod błędu.
  */
-error_t ReadCommand(Command *command) {
+static inline error_t ReadCommand(Command *command) {
     error_t error = ReadWord(command);
 
     if (error != NO_ERROR) {
@@ -408,10 +408,9 @@ error_t ReadCommand(Command *command) {
                 return ReadDegByOrComposeParameter(&command->degByOrComposeParameter, true);
             } else if (strcmp(command->name, "AT") == 0) {
                 return ReadAtParameter(&command->atParameter);
-            } else if(strcmp(command->name, "COMPOSE") == 0) {
+            } else if (strcmp(command->name, "COMPOSE") == 0) {
                 return ReadDegByOrComposeParameter(&command->degByOrComposeParameter, false);
-            }
-            else{
+            } else {
                 return IgnoreLineAndReturnError(c, INVALID_VALUE);
             }
         }
@@ -420,6 +419,9 @@ error_t ReadCommand(Command *command) {
         }
         if (strcmp(command->name, "AT") == 0) {
             return AT_ERROR;
+        }
+        if (strcmp(command->name, "COMPOSE") == 0) {
+            return COMPOSE_ERROR;
         }
         if (c == '\n' || c == EOF) {
             return NO_ERROR;
