@@ -28,6 +28,7 @@ static inline void *SafeMalloc(size_t size) {
 /**
  * Sprawdza, czy realloc nie zwrócił błędu.
  * @param size : rozmiar pamięci do zaalokowania,
+ * @param ptr: wskaźnik na pamięć do realokacji,
  * @return jeśli malloc zwrócił NULL, kończy program z błędem 1. 
  * W przeciwnym przypadku zwraca to, co zwrócił malloc.
  */

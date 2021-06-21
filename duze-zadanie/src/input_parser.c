@@ -282,6 +282,8 @@ static inline error_t IgnoreLineAndReturnRightError(int c, bool isDegBy) {
 /**
  * Wczytuje parametr polecenia DEG_BY lub polecenia COMPOSE
  * @param *parameter : wskaźnik na zapisanie parametru,
+ * @param isDegBy : zmienna logiczna określająca, czy wczytywany parametr dotyczy polecenia DEG_BY
+ * czy COMPOSE
  * @return kod błędu.
  */
 static inline error_t ReadDegByOrComposeParameter(unsigned long *parameter, bool isDegBy) {
@@ -290,20 +292,20 @@ static inline error_t ReadDegByOrComposeParameter(unsigned long *parameter, bool
     int c = getchar();
 
     if (!isdigit(c)) {
-        IgnoreLineAndReturnRightError(c, isDegBy);
+        return IgnoreLineAndReturnRightError(c, isDegBy);
     }
 
     while (isdigit(c)) {
         previous_value = *parameter;
         *parameter = ((*parameter) * 10) + (unsigned)(c - '0');
         if (*parameter < previous_value) {
-            IgnoreLineAndReturnRightError(c, isDegBy);
+            return IgnoreLineAndReturnRightError(c, isDegBy);
         }
         c = getchar();
     }
 
     if (c != EOF && c != '\n') {
-        IgnoreLineAndReturnRightError(c, isDegBy);
+        return IgnoreLineAndReturnRightError(c, isDegBy);
     }
 
     return NO_ERROR;

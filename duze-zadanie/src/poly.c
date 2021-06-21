@@ -146,7 +146,7 @@ static inline Mono AddMonos(const Mono *m, const Mono *n) {
 }
 
 /**
- * Sprawdza, czy w tablicy @param monos jednomiany są posortowane według wykładnika.
+ * Sprawdza, czy w tablicy monos jednomiany są posortowane według wykładnika.
  * @param count : rozmiar tablicy,
  * @param monos : tablica jednomianów,
  * @return Czy jednomiany są posortowane według wykładnika?
