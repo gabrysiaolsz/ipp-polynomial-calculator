@@ -235,20 +235,24 @@ void ExecuteAt(Stack *stack, poly_coeff_t parameter, unsigned int lineNumber) {
     }
 }
 
-// TODO poprawić tworzenie tablicy 
-void ExecuteCompose(Stack *stack, unsigned int lineNumber){
+void ExecuteCompose(Stack *stack, size_t parameter, unsigned int lineNumber){
     size_t size = StackSize(stack);
-    if (size < 2) {
+    if (size < parameter) {
         PrintStackUnderflow(lineNumber);
     }
     else{
         Poly p = Pop(stack);
-        Poly q = Pop(stack);
-        Poly *array = SafeMalloc(1 * sizeof(Poly));
-        array[0] = q;
-        Poly result = PolyCompose(&p, 1, array);
+        Poly *array = SafeMalloc(parameter * sizeof(Poly));
+        for(size_t i = 0; i < parameter; i++){
+            Poly q = Pop(stack);
+            array[parameter - 1 - i] = q;
+        }
+        Poly result = PolyCompose(&p, parameter, array);
         PolyDestroy(&p);
-        PolyDestroy(&q);
+        for(size_t i = 0; i < parameter; i++){
+            PolyDestroy(&array[i]);
+        }
+        free(array);
         Push(stack, result);
     }
 }
@@ -312,7 +316,7 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
     } else if (strcmp(command.name, "DEG") == 0) {
         ExecuteDeg(stack, lineNumber);
     } else if (strcmp(command.name, "DEG_BY") == 0) {
-        ExecuteDegBy(stack, command.degByParameter, lineNumber);
+        ExecuteDegBy(stack, command.degByOrComposeParameter, lineNumber);
     } else if (strcmp(command.name, "AT") == 0) {
         ExecuteAt(stack, command.atParameter, lineNumber);
     } else if (strcmp(command.name, "PRINT") == 0) {
@@ -321,7 +325,7 @@ void ExecuteCommand(Stack *stack, Command command, unsigned int lineNumber) {
         ExecutePop(stack, lineNumber);
     }
     else if(strcmp(command.name, "COMPOSE") == 0){
-        ExecuteCompose(stack, lineNumber);
+        ExecuteCompose(stack, command.degByOrComposeParameter, lineNumber);
     }
     else {
         fprintf(stderr, "ERROR %d WRONG COMMAND\n", lineNumber);
@@ -370,9 +374,12 @@ void ExecuteInput(Stack *stack) {
             case AT_ERROR:
                 fprintf(stderr, "ERROR %d AT WRONG VALUE\n", lineNumber);
                 break;
+            case COMPOSE_ERROR:
+                fprintf(stderr, "ERROR %d COMPOSE WRONG PARAMETER\n", lineNumber);
+                break;
             case ENCOUNTERED_EOF:
                 return;
-        } // No default label in switch, because we check all possibilities in enum error.
+        }
         lineNumber++;
     }
 }

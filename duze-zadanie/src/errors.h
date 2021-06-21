@@ -20,6 +20,7 @@ typedef enum {
     ENCOUNTERED_EOF, // Natrafiliśmy na koniec pliku.
     DEG_BY_ERROR,    // Błąd przy wczytywaniu polecenia DEG_BY.
     AT_ERROR,        // Błąd przy wczytywaniu polecenia AT.
+    COMPOSE_ERROR    // Błąd przy wczytywaniu polecenia COMPOSE.
 } error_t;
 
 #endif // POLYNOMIALS_ERRORS_H

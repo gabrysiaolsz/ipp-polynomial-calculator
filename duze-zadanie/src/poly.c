@@ -10,6 +10,7 @@
 #include "poly.h"
 #include "safe_memory_allocation.h"
 #include <stdlib.h>
+#include <stdio.h> //TODO usunac 
 
 void PolyDestroy(Poly *p) {
     if (PolyIsCoeff(p)) {
@@ -532,46 +533,69 @@ Poly PolyAt(const Poly *p, poly_coeff_t x) {
     return newPoly;
 }
 
-Poly PolyRaiseToPower(const Poly *p, unsigned int power){
-    Poly polyResult = PolyFromCoeff(1);
-
+Poly PolyRaiseToPower(const Poly *p, poly_exp_t power){
     if(power == 0){
-        return polyResult;
+        return PolyFromCoeff(1);
     }
     
-    for(size_t i = 0; i < power; i++){
+    if(PolyIsCoeff(p)){
+        return PolyFromCoeff(RaiseToPower(p->coeff, power));
+    }
+    
+    Poly polySquared = PolyRaiseToPower(p, power/2);
+    Poly polyResult = PolyMul(&polySquared, &polySquared);
+    
+    if(power % 2 == 1){
         Poly polyTmp = polyResult;
         polyResult = PolyMul(p, &polyResult);
         PolyDestroy(&polyTmp);
     }
+
+    PolyDestroy(&polySquared);
     
     return polyResult;
 }
 
-Poly PolyCompose(const Poly *p, size_t k, const Poly q[]){
-    if(PolyIsCoeff(p)){
-        return *p; //<- to powinno zrobić kopię tego co siedzi pod p
+Poly PolyComposeByIndex(const Poly *p, size_t k, const Poly q[], size_t index);
+
+Poly PolyComposeMono(const Mono *m, size_t k, const Poly q[], size_t index){
+    Poly basePoly;
+    if(index < k){
+        basePoly = q[index];
+    }
+    else{
+        basePoly = PolyZero();
     }
     
-    Poly polyFirstCompose, polyRecursiveCompose, polyResult = PolyZero();
-    for(size_t i = 0; i < p->size; i++) {
-        if(k == 0){
-            polyFirstCompose = PolyZero();
-            polyRecursiveCompose = PolyCompose(&p->arr[i].p, k, q);
-        }
-        else{
-            polyFirstCompose = PolyRaiseToPower(&q[0], p->arr[i].exp);
-            polyRecursiveCompose = PolyCompose(&p->arr[i].p, k-1, &q[1]);
-        }
+    Poly polyToMultiply = PolyRaiseToPower(&basePoly, m->exp);
+    Poly nextPoly = PolyComposeByIndex(&m->p, k, q, index + 1);
+    Poly resultPoly = PolyMul(&polyToMultiply, &nextPoly);
 
-        Poly polyComposeMono = PolyMul(&polyFirstCompose, &polyRecursiveCompose);
-        PolyDestroy(&polyFirstCompose);
-        PolyDestroy(&polyRecursiveCompose);
-        
-        Poly polyTmp = polyResult;
-        polyResult = PolyAdd(&polyComposeMono, &polyResult);
-        PolyDestroy(&polyComposeMono);
-        PolyDestroy(&polyTmp);
+    PolyDestroy(&polyToMultiply);
+    PolyDestroy(&nextPoly);
+    
+    return resultPoly;
+}
+
+Poly PolyComposeByIndex(const Poly *p, size_t k, const Poly q[], size_t index){
+    if(PolyIsCoeff(p)){
+        return PolyClone(p); //TODO trzeba?
     }
-    return polyResult;
+    
+    Poly resultPoly = PolyZero();
+    
+    for(size_t i = 0; i < p->size; i++){
+        Poly composePoly = PolyComposeMono(&p->arr[i], k, q, index);
+        Poly tmpPoly = resultPoly;
+        resultPoly = PolyAdd(&resultPoly, &composePoly);
+        
+        PolyDestroy(&tmpPoly);
+        PolyDestroy(&composePoly);
+    }
+    
+    return resultPoly;
+}
+
+Poly PolyCompose(const Poly *p, size_t k, const Poly q[]){
+    return PolyComposeByIndex(p, k, q, 0);
 }

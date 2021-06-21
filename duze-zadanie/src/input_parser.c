@@ -265,30 +265,45 @@ error_t ReadPoly(Poly *polyResult, bool requireEOL) {
 }
 
 /**
- * Wczytuje parametr polecenia DEG_BY
+ * Wczytuje parametr polecenia DEG_BY lub polecenia COMPOSE
  * @param *parameter : wskaźnik na zapisanie parametru,
  * @return kod błędu.
  */
-error_t ReadDegByParameter(unsigned long *parameter) {
+error_t ReadDegByOrComposeParameter(unsigned long *parameter, bool isDegBy) {
     *parameter = 0;
     unsigned long previous_value;
     int c = getchar();
 
     if (!isdigit(c)) {
-        return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+        if(isDegBy){
+            return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+        }
+        else{
+            return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
+        }
     }
 
     while (isdigit(c)) {
         previous_value = *parameter;
         *parameter = ((*parameter) * 10) + (unsigned)(c - '0');
         if (*parameter < previous_value) {
-            return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+            if(isDegBy){
+                return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+            }
+            else{
+                return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
+            }
         }
         c = getchar();
     }
 
     if (c != EOF && c != '\n') {
-        return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+        if(isDegBy){
+            return IgnoreLineAndReturnError(c, DEG_BY_ERROR);
+        }
+        else{
+            return IgnoreLineAndReturnError(c, COMPOSE_ERROR);
+        }
     }
 
     return NO_ERROR;
@@ -390,10 +405,13 @@ error_t ReadCommand(Command *command) {
         int c = getchar();
         if (c == ' ') {
             if (strcmp(command->name, "DEG_BY") == 0) {
-                return ReadDegByParameter(&command->degByParameter);
+                return ReadDegByOrComposeParameter(&command->degByOrComposeParameter, true);
             } else if (strcmp(command->name, "AT") == 0) {
                 return ReadAtParameter(&command->atParameter);
-            } else {
+            } else if(strcmp(command->name, "COMPOSE") == 0) {
+                return ReadDegByOrComposeParameter(&command->degByOrComposeParameter, false);
+            }
+            else{
                 return IgnoreLineAndReturnError(c, INVALID_VALUE);
             }
         }
@@ -443,5 +461,3 @@ error_t ReadOneLineOfInput(ParsedLine *line) {
             }
     }
 }
-
-//TODO poprawić wczytywanie COMPOSE

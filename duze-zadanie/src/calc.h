@@ -28,7 +28,7 @@ typedef struct {
      * Unia przechowująca argument polecenia DEG_BY albo AT.
      */
     union {
-        size_t degByParameter;
+        size_t degByOrComposeParameter;
         poly_coeff_t atParameter;
     };
 } Command;
